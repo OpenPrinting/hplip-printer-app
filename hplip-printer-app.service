@@ -1,0 +1,10 @@
+[Unit]
+Description=HPLIP Printer Application
+
+[Service]
+ExecStart=hplip-printer-app server
+ExecStop=hplip-printer-app shutdown
+Type=simple
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,50 @@
+#!/bin/sh
+
+if ! which hp-probe >/dev/null 2>&1; then
+    echo "ERROR: \"hp-probe\" (HPLIP) not found" 1>&2
+    exit 1
+fi
+if ! hp-probe -h >/dev/null 2>&1; then
+    echo "ERROR: \"hp-probe\" (HPLIP) not executable (Is Python installed?)" 1>&2
+    exit 1
+fi
+if ! which perl >/dev/null 2>&1; then
+    echo "ERROR: \"perl\" not found" 1>&2
+    exit 1
+fi
+if ! perl -h >/dev/null 2>&1; then
+    echo "ERROR: \"perl\" not executable" 1>&2
+    exit 1
+fi
+if ! which avahi-resolve-address >/dev/null 2>&1; then
+    echo "WARNING: \"avahi-resolve-address\" not found, URIs will use IP address instead of ZeroConf name" 1>&2
+fi
+if ! which host >/dev/null 2>&1; then
+    echo "WARNING: \"host\" utility not found, URIs will use IP address instead of host name" 1>&2
+fi
+
+for line in \
+    `hp-probe -bnet -o5 | \
+    grep 'hp:/net/' | \
+    perl -p -e 's|^\s*(\S+)\s+(\S+)\s+(\S+)\s*$|URI=\1;MODELRAW=\2;NETID=\3\n|'`; do
+    eval "$line"
+    MODEL=`echo $MODELRAW | perl -p -e 's/_/ /g'`
+    DEVID=`echo $MODEL | perl -p -e 's/^(Hewlett[ -]Packard|\S+)\s+(.*)$/MFG:\1;MDL:\1 \2;/i'`
+    IP=`echo $URI | perl -p -e 's|^.+\?ip=(\d+\.\d+\.\d+\.\d+)\s*$|\1|i'` || IP=
+    if [ -n "$IP" ]; then
+	ZEROCONFNAME=`avahi-resolve-address $IP | perl -p -e 's/^\s*\S+\s+(\S+?)(\.local\.?)?\s*$/\1/'` || ZEROCONFNAME=
+	if [ -n "$ZEROCONFNAME" ]; then
+	    URI=`echo $URI | perl -p -e "s|\?ip=(\d+\.\d+\.\d+\.\d+)|?zc=$ZEROCONFNAME|"`
+	else
+	    HOSTNAME=`host $IP | head -1 | perl -p -e 's/^.*\s+(\S+?)\.?\s*$/\1/'` || :
+	    if [ -n "$HOSTNAME" ]; then
+		URI=`echo $URI | perl -p -e "s|\?ip=(\d+\.\d+\.\d+\.\d+)|?hostname=$HOSTNAME|"`
+	    fi
+	fi
+    fi
+    if [ -n "$URI" -a -n "$MODEL" -a -n "$NETID" -a -n "$DEVID" ]; then
+	echo network $URI \"$MODEL\" "\"$MODEL Network $NETID HPLIP\"" \"$DEVID\" \"\"
+    fi
+done
+
+exit 0

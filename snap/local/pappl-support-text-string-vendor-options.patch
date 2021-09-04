@@ -1,0 +1,114 @@
+diff --git a/pappl/printer-webif.c b/pappl/printer-webif.c
+index 8b7a683..ba888d4 100644
+--- a/pappl/printer-webif.c
++++ b/pappl/printer-webif.c
+@@ -668,6 +668,7 @@ _papplPrinterWebDefaults(
+ 		supname[128];		// xxx-supported name
+     ipp_attribute_t *attr;		// Attribute
+     int		count;			// Number of values
++    bool        textattr;               // Text/String option?
+ 
+     snprintf(defname, sizeof(defname), "%s-default", data.vendor[i]);
+     snprintf(supname, sizeof(defname), "%s-supported", data.vendor[i]);
+@@ -677,6 +678,7 @@ _papplPrinterWebDefaults(
+     else
+       defvalue[0] = '\0';
+ 
++    textattr = (ippGetValueTag(attr) == IPP_TAG_TEXT);
+     if ((attr = ippFindAttribute(printer->driver_attrs, supname, IPP_TAG_ZERO)) != NULL)
+     {
+       count = ippGetCount(attr);
+@@ -727,6 +729,12 @@ _papplPrinterWebDefaults(
+ 
+       papplClientHTMLPuts(client, "</td></tr>\n");
+     }
++    else if (textattr)
++    {
++      papplClientHTMLPrintf(client, "              <tr><th>%s:</th><td>", data.vendor[i]);
++      papplClientHTMLPrintf(client, "<input type=\"text\" name=\"%s\" value=\"%s\">", data.vendor[i], defvalue);
++      papplClientHTMLPuts(client, "</td></tr>\n");
++    }
+   }
+ 
+   pthread_rwlock_unlock(&printer->rwlock);
+diff --git a/pappl/system-loadsave.c b/pappl/system-loadsave.c
+index d5ddb6c..295d9a2 100644
+--- a/pappl/system-loadsave.c
++++ b/pappl/system-loadsave.c
+@@ -237,6 +237,13 @@ papplSystemLoadState(
+           if (!value)
+             value = ptr;
+ 
++	  if (defname[0] == '*')
++	  {
++	    ippDeleteAttribute(printer->driver_attrs, ippFindAttribute(printer->driver_attrs, defname + 1, IPP_TAG_ZERO));
++	    ippAddOctetString(printer->driver_attrs, IPP_TAG_PRINTER, defname + 1, value, strlen(value));
++	  }
++	  else
++	  {
+ 	  ippDeleteAttribute(printer->driver_attrs, ippFindAttribute(printer->driver_attrs, defname, IPP_TAG_ZERO));
+ 
+           if ((attr = ippFindAttribute(printer->driver_attrs, supname, IPP_TAG_ZERO)) != NULL)
+@@ -264,6 +271,7 @@ papplSystemLoadState(
+           {
+             ippAddString(printer->driver_attrs, IPP_TAG_PRINTER, IPP_TAG_TEXT, defname, NULL, value);
+           }
++	  }
+         }
+ 	else if (!strcasecmp(line, "Job") && value)
+ 	{
+@@ -514,9 +522,25 @@ papplSystemSaveState(
+     {
+       char	defname[128],		// xxx-default name
+ 	      	defvalue[1024];		// xxx-default value
++      ipp_attribute_t *attr;
++      int       len;
++      char      *p;
+ 
+       snprintf(defname, sizeof(defname), "%s-default", printer->driver_data.vendor[j]);
+-      ippAttributeString(ippFindAttribute(printer->driver_attrs, defname, IPP_TAG_ZERO), defvalue, sizeof(defvalue));
++      attr = ippFindAttribute(printer->driver_attrs, defname, IPP_TAG_ZERO);
++      if (ippGetValueTag(attr) == IPP_TAG_STRING)
++      {
++	cupsFilePutChar(fp, '*');
++	// We cannot use ippAttributeString() with an octet string
++	// attribute, as it quotes spaces with '\'.
++	p = ippGetOctetString(attr, 0, &len);
++	if (len > sizeof(defvalue) - 1)
++	  len = sizeof(defvalue) - 1;
++	strncpy(defvalue, p, len);
++	defvalue[len] = '\0';
++      }
++      else
++	ippAttributeString(attr, defvalue, sizeof(defvalue));
+ 
+       cupsFilePutConf(fp, defname, defvalue);
+     }
+diff --git a/testsuite/pwg-driver.c b/testsuite/pwg-driver.c
+index 3bb5d22..91b8baf 100644
+--- a/testsuite/pwg-driver.c
++++ b/testsuite/pwg-driver.c
+@@ -392,12 +392,13 @@ pwg_callback(
+     driver_data->sides_supported = PAPPL_SIDES_ONE_SIDED;
+     driver_data->sides_default   = PAPPL_SIDES_ONE_SIDED;
+ 
+-    driver_data->num_vendor = 5;
++    driver_data->num_vendor = 6;
+     driver_data->vendor[0]  = "vendor-boolean";
+     driver_data->vendor[1]  = "vendor-integer";
+     driver_data->vendor[2]  = "vendor-keyword";
+     driver_data->vendor[3]  = "vendor-range";
+     driver_data->vendor[4]  = "vendor-text";
++    driver_data->vendor[5]  = "vendor-extra-info";
+ 
+     *driver_attrs = ippNew();
+ 
+@@ -414,6 +415,8 @@ pwg_callback(
+     ippAddRange(*driver_attrs, IPP_TAG_PRINTER, "vendor-range-supported", -100, 100);
+ 
+     ippAddString(*driver_attrs, IPP_TAG_PRINTER, IPP_TAG_TEXT, "vendor-text-default", NULL, "Hello, World!");
++
++    ippAddOctetString(*driver_attrs, IPP_TAG_PRINTER, "vendor-extra-info-default", "Parameter1=X Parameter2=Y", 25);
+   }
+ 
+   // Fill out ready and default media (default == ready media from the first source)
