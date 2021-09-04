@@ -59,7 +59,7 @@ install:	$(TARGETS)
 	mkdir -p $(spooldir)
 	mkdir -p $(resourcedir)
 	cp testpage.ps $(resourcedir)
-	if test "x$(cupsserverbin)" != x; then \
+	if test "x$(cupsserverbin)" != x && [ -d $(cupsserverbin) ]; then \
 	  mkdir -p $(libdir); \
 	  touch $(serverbin) 2> /dev/null || :; \
 	  if rm $(serverbin) 2> /dev/null; then \
