@@ -362,6 +362,9 @@ parts:
     override-build: |
       set -eux
       perl -p -i -e 's:/etc/hp:/snap/hplip-printer-app/current/etc/hp:' Makefile*
+      if echo $SNAPCRAFT_ARCH_TRIPLET | grep -qv x86_64; then
+        perl -p -i -e 's: -lImageProcessor::' Makefile*
+      fi
       snapcraftctl build
       ( cd ../install/snap/hplip-printer-app/current/etc/hp; \
         perl -p -i -e 's:/var/:/var/snap/hplip-printer-app/common/var/:' hplip.conf; \
