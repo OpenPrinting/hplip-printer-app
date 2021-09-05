@@ -333,6 +333,7 @@ parts:
     build-environment:
       - PYTHON: python3
     autotools-configure-parameters:
+      - --build=$SNAPCRAFT_ARCH_TRIPLET
       - --prefix=/usr
       - --disable-foomatic-rip-hplip-install
       - --without-docdir
