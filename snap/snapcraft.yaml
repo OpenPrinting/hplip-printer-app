@@ -336,6 +336,8 @@ parts:
         - IMAGEPROC: enable
       - else:
         - IMAGEPROC: disable
+      - on arm64:
+        - SNAPCRAFT_ARCH_TRIPLET: aarch64-unknown-linux-gnu
     autotools-configure-parameters:
       - --build=$SNAPCRAFT_ARCH_TRIPLET
       - --prefix=/usr
