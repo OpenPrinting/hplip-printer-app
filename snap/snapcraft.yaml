@@ -213,6 +213,8 @@ parts:
       mkdir -p $SNAPCRAFT_STAGE/usr/bin
       cp cups-config $SNAPCRAFT_STAGE/usr/bin/
       cp ppdc/ppdc $SNAPCRAFT_STAGE/usr/bin/
+      mkdir -p $SNAPCRAFT_STAGE/usr/share/cups/ppdc/
+      cp data/*.defs $SNAPCRAFT_STAGE/usr/share/cups/ppdc/
       #snapcraftctl build
     build-packages:
       - patch
@@ -247,6 +249,7 @@ parts:
       - -var
       - -usr/include
       - -usr/lib/pkgconfig
+      - -usr/share/cups
       - -usr/share/fonts
       - -usr/share/man
       - -usr/share/doc
@@ -332,6 +335,8 @@ parts:
     plugin: autotools
     build-environment:
       - PYTHON: python3
+      - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$LD_LIBRARY_PATH
+      - CUPS_DATADIR: $SNAPCRAFT_STAGE/usr/share/cups
       - on amd64:
         - IMAGEPROC: enable
       - else:
