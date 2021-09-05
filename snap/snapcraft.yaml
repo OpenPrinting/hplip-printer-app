@@ -451,7 +451,6 @@ parts:
       - -var
       - usr/bin
       - usr/lib
-      - usr/lib/libImageProcessor.so
       - -usr/include
       - -usr/lib/pkgconfig
       - -usr/share/fonts
