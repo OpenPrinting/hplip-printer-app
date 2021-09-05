@@ -332,6 +332,10 @@ parts:
     plugin: autotools
     build-environment:
       - PYTHON: python3
+      - on amd64:
+        - IMAGEPROC: enable
+      - else:
+        - IMAGEPROC: disable
     autotools-configure-parameters:
       - --build=$SNAPCRAFT_ARCH_TRIPLET
       - --prefix=/usr
@@ -345,7 +349,7 @@ parts:
       - --disable-cups-drv-install
       - --disable-hpijs-install
       - --disable-foomatic-drv-install
-      - --enable-imageProcessor-build
+      - --$IMAGEPROC-imageProcessor-build
       - --enable-network-build
       - --disable-class-driver
       - --disable-scan-build
