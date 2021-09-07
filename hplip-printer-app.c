@@ -54,7 +54,9 @@ main(int  argc,				// I - Number of command-line arguments
   // but as many printers have buggy PS interpreters we prefer converting
   // PDF to Raster and not to PS
   spooling_conversions = cupsArrayNew(NULL, NULL);
+  cupsArrayAdd(spooling_conversions, &pr_convert_pdf_to_ps);
   cupsArrayAdd(spooling_conversions, &pr_convert_pdf_to_raster);
+  cupsArrayAdd(spooling_conversions, &pr_convert_ps_to_ps);
   cupsArrayAdd(spooling_conversions, &pr_convert_ps_to_raster);
 
   // Array of stream formats, most desirables first
@@ -64,6 +66,7 @@ main(int  argc,				// I - Number of command-line arguments
   // input format.
   stream_formats = cupsArrayNew(NULL, NULL);
   cupsArrayAdd(stream_formats, &pr_stream_cups_raster);
+  cupsArrayAdd(stream_formats, &pr_stream_postscript);
 
   // Configuration record of the Printer Application
   pr_printer_app_config_t printer_app_config =
@@ -80,7 +83,7 @@ main(int  argc,				// I - Number of command-line arguments
     SYSTEM_WEB_IF_FOOTER,     // Footer for web interface (in HTML)
     // pappl-retrofit special features to be used
     PR_COPTIONS_NO_GENERIC_DRIVER |
-    PR_COPTIONS_USE_ONLY_MATCHING_NICKNAMES |
+    //PR_COPTIONS_USE_ONLY_MATCHING_NICKNAMES |
     PR_COPTIONS_CUPS_BACKENDS |
     PR_COPTIONS_NO_PAPPL_BACKENDS,
     pr_autoadd,               // Auto-add (driver assignment) callback
@@ -96,7 +99,7 @@ main(int  argc,				// I - Number of command-line arguments
                               // If empty all but the ignored backends are used
     TESTPAGE,                 // Test page (printable file), used by the
                               // standard test print callback pr_testpage()
-    ", +hpcups +[0-9]+\\.[0-9]+\\.[0-9]+()$",
+    ", +hpcups +[0-9]+\\.[0-9]+\\.[0-9]+()$|(\\W*[Pp]ost[Ss]cript).*$",
                               // Regular expression to separate the
                               // extra information after make/model in
                               // the PPD's *NickName. Also extracts a

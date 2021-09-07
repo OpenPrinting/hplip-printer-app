@@ -169,7 +169,7 @@ parts:
       - --prefix=/usr
       - --without-x
       - --disable-gtk
-      - --with-drivers=cups,pwgraster
+      - --with-drivers=cups,pwgraster,ps2write
       - --enable-freetype
       - --without-tesseract
       - --datarootdir=/snap/hplip-printer-app/current/usr/share/
@@ -393,8 +393,11 @@ parts:
       )
       ( cd ../install/usr/share/ppd/hplip/HP/; \
         find . -name '*.gz' | xargs gunzip -f; \
-        pyppd -v -o hplip-hpcups-ppds .; \
-        mv hplip-hpcups-ppds ../..; \
+        for file in `find . -name '*.ppd'`; do \
+          perl -p -i -e 's/(\*NickName:.*\S+)\s*\(recommended\)/\1/' $file; \
+        done; \
+        pyppd -v -o hplip-ppds .; \
+        mv hplip-ppds ../..; \
         cd ../..; \
         rm -rf hplip; \
       )
@@ -445,6 +448,7 @@ parts:
       - libsnmp-base
     organize:
       usr/lib/cups/filter/hpcups: usr/lib/hplip-printer-app/filter/hpcups
+      usr/lib/cups/filter/hpps: usr/lib/hplip-printer-app/filter/hpps
       usr/lib/cups/backend/hp: usr/lib/hplip-printer-app/backend/hp
       snap/hplip-printer-app/current/etc: etc
     stage:
@@ -479,6 +483,10 @@ parts:
     source: .
     make-parameters:
       - LDFLAGS="$LDFLAGS -ljpeg"
+    override-build: |
+      set -eux
+      make clean
+      snapcraftctl build
     build-packages:
       - libusb-1.0-0-dev
     stage-packages:

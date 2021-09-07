@@ -2,8 +2,8 @@
 
 ## INTRODUCTION
 
-This repository contains a Printer Application for non-PostScript HP
-and Apollo printers supported by HP's HPLIP driver suite.
+This repository contains a Printer Application for printing on HP and
+Apollo printers supported by HP's HPLIP driver suite.
 
 It uses [PAPPL](https://www.msweet.org/pappl) to support IPP
 printing from multiple operating systems. In addition, it uses the
@@ -34,8 +34,17 @@ meaning that it does not use PPDs, CUPS filters, and CUPS backends
 internally. Also their utilities need to be made independent of
 CUPS.**
 
-For PostScript printers please use the [PostScript Printer
+For PostScript printers you can also use the [PostScript Printer
 Application](https://github.com/OpenPrinting/ps-printer-app).
+
+It depends on the situation which Printer Application is more suitable
+here. When printing with the HPLIP Printer Application it should be
+possible to scan on the same printer at the same time whereas with
+PostScript Printer Application you have bi-directional access to your
+printer, so you can poll the printer's accessory configuration (paper
+trays, finishers, duplex unit, ...) remotely from the web interface of
+the Printer Application, without needing to walk up to the printer to
+check what s installed.
 
 Also check whether your printer is a driverless IPP printer (AirPrint,
 Mopria, IPP Everywhere, Wi-Fi Direct Print, prints from phones) as in
@@ -49,13 +58,14 @@ first.
 
 ### Properties
 
-- A Printer Application providing the `hpcups` printer driver of
-  HPLIP, supporting printing on most non-PostScript printers from HP
-  and Apollo. This allows easy printing in high quality, including
-  photos on photo paper.
+- A Printer Application providing the `hpcups` printer driver and all
+  printer's PPDs of HPLIP, supporting printing on most printers from
+  HP and Apollo. This allows easy printing in high quality, including
+  photos on photo paper. The `hpps` CUPS filter for PIN-protected
+  printing on PostScript printers is also included.
 
 - The printers are discovered with HPLIP, too. For USB printers the
-  `hp` CUPS backend is used for network printers the `hp-probe`
+  `hp` CUPS backend is used and for network printers the `hp-probe`
   utility (encapsulated in a script to behave as a CUPS backend).
 
 - The communication with the printers is done by the `hp` CUPS backend
@@ -64,20 +74,27 @@ first.
   (like the standard CUPS and PAPPL backends use). This way one should
   be able to print and scan simultaneously, or at least check printer
   status while printing. Not all printers support this protocol, if
-  not, a standard streaming protocol is used. Alao any other special
+  not, a standard streaming protocol is used. Also any other special
   functionality which requires the `hp` backend is supported.
 
-- PWG Raster, Apple Raster or image input data does not grt converted
-  to PostScript or PDF, it is only converted/scaled to the required
-  color space and resolution and then fed into the `hpcups` driver.
+- Note that the `hp` backend does not allow bi-directional access to
+  the printer. If you have a PostScript printer and prefer support for
+  remote querying of the printer's accessory configuration instead of
+  simultaneous printing and scanning, use the PostScript Printer
+  Application.
 
-- PDF and PostScript input data is rendered into raster data using
-  Ghostscript.
+- PWG Raster, Apple Raster or image input data to be printed on a
+  non-PostScript printer does not get converted to PostScript or PDF,
+  it is only converted/scaled to the required color space and
+  resolution and then fed into the `hpcups` driver.
+
+- For printing on non-PostScript printers PDF and PostScript input
+  data is rendered into raster data using Ghostscript. Ghostscript is
+  also used to convert PDF into PostScript for PostScript printers.
 
 - The information about which printer models are supported and which
-  are their capabilities is based on the PPD files for `hpcups`
-  included in HPLIP. They are packaged in the Snap as a compressed
-  archive.
+  are their capabilities is based on the PPD files included in
+  HPLIP. They are packaged in the Snap as a compressed archive.
 
 - Standard job IPP attributes are mapped to the driver's option
   settings best fitting to them so that users can print from any type
@@ -110,12 +127,6 @@ first.
 
 - Include at least some of the 81 patches of the Debian package of
   HPLIP to fix some bugs.
-
-- Move HP PostScript printer support from the PostScript Printer
-  Application to this one, to make use of the backends, have printing
-  and scanning in multi-function devices coming from the same Printer
-  Application, and to ease maintenance of the Printer Application
-  Snaps.
 
 - PDF test page, for example generated with the bannertopdf filter.
 

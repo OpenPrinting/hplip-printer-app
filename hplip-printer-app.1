@@ -19,11 +19,11 @@ hplip-printer-app \- HPLIP Printer Application
 .B hplip-printer-app
 is a Printer Application that can be run standalone or as a dedicated IPP Everywhere network service.
 .B hplip-printer-app
-supports printing PDF files, PostScript files, JPEG images, PNG images, and Apple/PWG raster files to non-PostScript USB and network printers from HP and Apollo. It based on HP's HPLIP driver suite, using its `hpcups` CUPS print filter and `hp` CUPS backend.
+supports printing PDF files, PostScript files, JPEG images, PNG images, and Apple/PWG raster files to most USB and network printers from HP and Apollo. It is based on HP's HPLIP driver suite, using its `hpcups` and `hpps` CUPS print filters and the `hp` CUPS backend. For discovering network printers the `hp-probe` utility is used.
 
 It currently only supports printing. Scanning and loading the proprietary pluging from HP will get added later. I am not sure whether I will also include the utilities, both text and graphical interface.
 
-Note that HPLIP is actively maintained by HP. There is a new release every 2 or 3 months, but currently still only as classic CUPS and SANE drivers. It would be HP's task to switch their software over to be a Printer Application, or offer both mpodes. For the time being until this happens I will offer this Printer Application retro-fitting the current HPLIP releases.
+Note that HPLIP is actively maintained by HP. There is a new release every 2 or 3 months, but currently still only as classic CUPS and SANE drivers. It would be HP's task to switch their software over to be a Printer Application, or offer both modes. For the time being until this happens I will offer this Printer Application retro-fitting the current HPLIP releases.
 
 .SH SUB-COMMANDS
 If no sub-command is specified, "submit" is assumed.
