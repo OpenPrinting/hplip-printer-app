@@ -165,6 +165,7 @@ parts:
   ghostscript:
     source: https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs9540/ghostscript-9.54.0.tar.gz
     plugin: autotools
+    # We only need Raster and PostScript output
     autotools-configure-parameters:
       - --prefix=/usr
       - --without-x
@@ -196,6 +197,8 @@ parts:
     source: https://github.com/OpenPrinting/cups
     source-type: git
     plugin: autotools
+    # We only need libcups (with headers, ...), ppdc plus *.defs files (for
+    # HPLIP build to updated hpcups PPD files)
     override-build: |
       set -eux
       ./configure --sysconfdir=/var/snap/hplip-printer-app/common/
@@ -263,6 +266,7 @@ parts:
     source: https://github.com/OpenPrinting/cups-filters
     source-type: git
     plugin: autotools
+    # We only need the 3 libraries: libcupsfilters, libppd, and libfontembed
     override-build: |
       set -eux
       ./autogen.sh
@@ -368,13 +372,20 @@ parts:
       - --disable-qt4
       - --disable-qt5
       - --disable-policykit
+    # We need the PostScript and hpcups PPDs, the hpps and hpcups filters,
+    # the hp backend, and the hp-probe utility
     override-build: |
       set -eux
+      # Correct hard-coded /etc/hp/ path in Makefile
       perl -p -i -e 's:/etc/hp:/snap/hplip-printer-app/current/etc/hp:' Makefile*
+      # Remove hard-coded linking of binary-only libImageProcessor for
+      # in Makefile for non-amd64 architectures
       if echo $SNAPCRAFT_ARCH_TRIPLET | grep -qv x86_64; then
         perl -p -i -e 's: -lImageProcessor::' Makefile*
       fi
+      # Do the "./configure; make; make install"
       snapcraftctl build
+      # Correct hard-coded paths in hplip.conf
       ( cd ../install/snap/hplip-printer-app/current/etc/hp; \
         perl -p -i -e 's:/var/:/var/snap/hplip-printer-app/common/var/:' hplip.conf; \
         perl -p -i -e 's:/usr/share/:/snap/hplip-printer-app/current/usr/share/:' hplip.conf; \
@@ -382,15 +393,20 @@ parts:
         perl -p -i -e 's:/usr/share/ppd/HP:/usr/share/ppd:' hplip.conf; \
         perl -p -i -e 's:/usr/lib/cups/:/snap/hplip-printer-app/current/usr/lib/hplip-printer-app/:' hplip.conf; \
       )
+      # Correct hard-coded /var and /etc paths in the utilities written in
+      # Python
       ( cd ../install/usr/share/hplip/
         perl -p -i -e 's:/var/(\S+)/hp:/var/snap/hplip-printer-app/common/var/\1/hp:' *.py */*.py */*/*.py
         perl -p -i -e 's:/etc/hp:/snap/hplip-printer-app/current/etc/hp:' *.py */*.py */*/*.py
       )
+      # Correct Python shebang in the utilities
       ( cd ../install; \
         for file in usr/bin/hp-*; do \
           perl -p -i -e 's:^\s*\#\!\s*/usr/bin/env\s+python.*:#!/snap/hplip-printer-app/current/usr/bin/python3:' `readlink -f $file`; \
         done; \
       )
+      # Handle the PPD files: Unzip, remove "(recommended)" (we have only
+      # HPLIP here, no other driver), compress into self-extracting archive
       ( cd ../install/usr/share/ppd/hplip/HP/; \
         find . -name '*.gz' | xargs gunzip -f; \
         for file in `find . -name '*.ppd'`; do \
@@ -401,7 +417,11 @@ parts:
         cd ../..; \
         rm -rf hplip; \
       )
+      # Link Python 3 to the "python" executable name (no older Python in this
+      # Snap and everything needs Python 3)
       ln -sf python3 ../install/usr/bin/python
+      # Install the binary-only libImageProcessor only if we build the Snap for
+      # amd64 (x86_64)
       if echo $SNAPCRAFT_ARCH_TRIPLET | grep -q x86_64; then
         cp prnt/hpcups/libImageProcessor-x86_64.so ../install/usr/lib/libImageProcessor.so
       fi
@@ -483,6 +503,15 @@ parts:
     source: .
     make-parameters:
       - LDFLAGS="$LDFLAGS -ljpeg"
+    # To improve convenience for developers (and everyone who wants to
+    # build from source), we do a "make clean" before "make" here,
+    # because if we had done "make" off-Snap, directly in the source
+    # tree. and afterwards build the Snap with snapcraft, the build
+    # sucks in our local binary of hplip-printer-app instead of
+    # compiling its own one in the Snap harness with the appropriate
+    # libraries, ending up with the Snap containing an executable
+    # which does not work inside the Snap. The "make clean" removes
+    # any accidentally grabbed binary.
     override-build: |
       set -eux
       make clean
@@ -550,7 +579,11 @@ parts:
     plugin: dump
     source: .
     organize:
+      # Startup warpper scripts
       snap/local/run-hplip-printer-app*: scripts/
+      # "HP" discovery-only CUPS backendto discover
+      # network printers using the hp-probe utility, as
+      # HPLIP's "hp" backend only discovers USB printers
       HP: usr/lib/hplip-printer-app/backend/HP
     prime:
       - scripts/
