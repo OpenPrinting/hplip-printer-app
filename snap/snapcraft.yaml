@@ -270,7 +270,7 @@ parts:
     override-build: |
       set -eux
       ./autogen.sh
-      ./configure --disable-avahi --disable-ldap --disable-foomatic --disable-braille --disable-mutool --without-rcdir --with-pdftops-path=/snap/cups/current/usr/bin/pdftops
+      ./configure --disable-avahi --disable-ldap --disable-foomatic --disable-braille --disable-mutool --without-rcdir --with-pdftops-path=/snap/hplip-printer-app/current/usr/bin/pdftops
       make libppd.la
       make libcupsfilters.la
       make libfontembed.la
