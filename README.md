@@ -35,16 +35,9 @@ internally. Also their utilities need to be made independent of
 CUPS.**
 
 For PostScript printers you can also use the [PostScript Printer
-Application](https://github.com/OpenPrinting/ps-printer-app).
-
-It depends on the situation which Printer Application is more suitable
-here. When printing with the HPLIP Printer Application it should be
-possible to scan on the same printer at the same time whereas with
-PostScript Printer Application you have bi-directional access to your
-printer, so you can poll the printer's accessory configuration (paper
-trays, finishers, duplex unit, ...) remotely from the web interface of
-the Printer Application, without needing to walk up to the printer to
-check what s installed.
+Application](https://github.com/OpenPrinting/ps-printer-app),
+especially if you have it already installed for some non-HP PostScript
+printer.
 
 Also check whether your printer is a driverless IPP printer (AirPrint,
 Mopria, IPP Everywhere, Wi-Fi Direct Print, prints from phones) as in
@@ -75,13 +68,20 @@ first.
   be able to print and scan simultaneously, or at least check printer
   status while printing. Not all printers support this protocol, if
   not, a standard streaming protocol is used. Also any other special
-  functionality which requires the `hp` backend is supported.
+  functionality which requires the `hp` backend is supported. On the
+  "Add Printer" web interface page under "Devices" select the "HPLIP
+  (HP)" entries.
 
 - Note that the `hp` backend does not allow bi-directional access to
   the printer. If you have a PostScript printer and prefer support for
   remote querying of the printer's accessory configuration instead of
-  simultaneous printing and scanning, use the PostScript Printer
-  Application.
+  simultaneous printing and scanning, PAPPL, standard backends for USB
+  and network printers are also available.
+
+- If you have an unusal system configuration or a personal firewall
+  HP's backends will perhaps not discover your printer. Also in this
+  situation the standard backends, including the fully manual "Network
+  Printer" entry incombination with the hostname/IP field.
 
 - PWG Raster, Apple Raster or image input data to be printed on a
   non-PostScript printer does not get converted to PostScript or PDF,

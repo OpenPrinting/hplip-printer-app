@@ -84,8 +84,8 @@ main(int  argc,				// I - Number of command-line arguments
     // pappl-retrofit special features to be used
     PR_COPTIONS_NO_GENERIC_DRIVER |
     //PR_COPTIONS_USE_ONLY_MATCHING_NICKNAMES |
-    PR_COPTIONS_CUPS_BACKENDS |
-    PR_COPTIONS_NO_PAPPL_BACKENDS,
+    //PR_COPTIONS_NO_PAPPL_BACKENDS,
+    PR_COPTIONS_CUPS_BACKENDS,
     pr_autoadd,               // Auto-add (driver assignment) callback
     NULL,                     // Printer identify callback (HPLIP backend
                               // does not support this)
