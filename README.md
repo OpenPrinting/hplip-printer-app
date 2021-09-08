@@ -81,7 +81,8 @@ first.
 - If you have an unusal system configuration or a personal firewall
   HP's backends will perhaps not discover your printer. Also in this
   situation the standard backends, including the fully manual "Network
-  Printer" entry incombination with the hostname/IP field.
+  Printer" entry in combination with the hostname/IP field can be
+  helpful.
 
 - PWG Raster, Apple Raster or image input data to be printed on a
   non-PostScript printer does not get converted to PostScript or PDF,

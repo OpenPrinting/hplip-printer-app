@@ -82,6 +82,7 @@ main(int  argc,				// I - Number of command-line arguments
     },
     SYSTEM_WEB_IF_FOOTER,     // Footer for web interface (in HTML)
     // pappl-retrofit special features to be used
+    PR_COPTIONS_QUERY_PS_DEFAULTS |
     PR_COPTIONS_NO_GENERIC_DRIVER |
     //PR_COPTIONS_USE_ONLY_MATCHING_NICKNAMES |
     //PR_COPTIONS_NO_PAPPL_BACKENDS,
