@@ -5,9 +5,8 @@ summary: HPLIP Printer Application
 description: |
   The HPLIP Printer Application is a PAPPL (Printer Application
   Framework) based Printer Application to support printers using the
-  printer driver of HPLIP. PostScript printing is not supported (use
-  the PostScript Printer Application). Support for scanning and for
-  the proprietary plugin will be added later.
+  printer driver of HPLIP. Support for scanning and for the
+  proprietary plugin will be added later.
 
 grade: stable
 confinement: strict
@@ -579,7 +578,7 @@ parts:
     plugin: dump
     source: .
     organize:
-      # Startup warpper scripts
+      # Startup wrapper scripts
       snap/local/run-hplip-printer-app*: scripts/
       # "HP" discovery-only CUPS backendto discover
       # network printers using the hp-probe utility, as

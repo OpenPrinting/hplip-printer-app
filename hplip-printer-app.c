@@ -36,7 +36,7 @@
 
 
 //
-// 'main()' - Main entry for the ghostscript-printer-app.
+// 'main()' - Main entry for the hplip-printer-app.
 //
 
 int

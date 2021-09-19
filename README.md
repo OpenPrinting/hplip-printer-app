@@ -75,7 +75,7 @@ first.
 - Note that the `hp` backend does not allow bi-directional access to
   the printer. If you have a PostScript printer and prefer support for
   remote querying of the printer's accessory configuration instead of
-  simultaneous printing and scanning, PAPPL, standard backends for USB
+  simultaneous printing and scanning, PAPPL's standard backends for USB
   and network printers are also available.
 
 - If you have an unusal system configuration or a personal firewall
