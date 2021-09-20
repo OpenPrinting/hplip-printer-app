@@ -18,7 +18,7 @@ work (or now the code of pappl-retrofit) is derived from the
 The printer driver itself and the software to communicate with the
 printer hardware is taken from the [HPLIP (HP Linux Imaging and
 Printing) driver
-suite}(https://developers.hp.com/hp-linux-imaging-and-printing/), also
+suite](https://developers.hp.com/hp-linux-imaging-and-printing/), also
 the Information about supported printer models and their capabilities.
 
 Your contributions are welcome. Please post [issues and pull
