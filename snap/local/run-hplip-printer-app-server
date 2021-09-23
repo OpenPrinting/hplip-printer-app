@@ -1,2 +1,2 @@
 #!/bin/sh
-exec $SNAP/scripts/run-hplip-printer-app -o log-level=debug -o log-file=$SNAP_COMMON/hplip-printer-app.log server "$@"
+exec $SNAP/scripts/run-hplip-printer-app -o log-file=$SNAP_COMMON/hplip-printer-app.log server "$@"

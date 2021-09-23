@@ -72,6 +72,13 @@ parts:
     override-build: |
       set -eux
       patch -p1 < $SNAPCRAFT_STAGE/patches/pappl-support-text-string-vendor-options.patch
+      # Raise the supported number of vendor-specific options/attributes in
+      # PAPPL to 256, as the original 32 can be too small for some busy PPD
+      # files
+      perl -p -i -e 's/(define\s+PAPPL_MAX_VENDOR\s+)32/\1 256/' pappl/printer.h
+      # De-activate log-rotating. It does not work with the forked processes
+      # of the filters
+      perl -p -i -e 's/(system->logmaxsize\s+=).*/\1 0;/' pappl/system.c
       snapcraftctl build
     autotools-configure-parameters:
       - --prefix=/usr
@@ -89,6 +96,7 @@ parts:
       - libpng-dev
       - libusb-1.0-0-dev
       - zlib1g-dev
+      - perl-base
     stage-packages:
       - libavahi-client3
       - libpng16-16
