@@ -79,6 +79,11 @@ parts:
       # De-activate log-rotating. It does not work with the forked processes
       # of the filters
       perl -p -i -e 's/(system->logmaxsize\s+=).*/\1 0;/' pappl/system.c
+      # As we do not use PAPPL's own backends but the CUPS backends using the
+      # "cups" device scheme of pappl-retrofit, we let the manual "Network
+      # Printer" device on the "Add Printer" page of the web interface use a
+      # "cups:socket://..." URI instead of simply "socket://..."
+      perl -p -i -e 's/(httpAssembleURI\(.*?)"socket"(.*?\))/\1"cups:socket"\2/' pappl/system-webif.c
       snapcraftctl build
     autotools-configure-parameters:
       - --prefix=/usr
@@ -205,12 +210,17 @@ parts:
     source-type: git
     plugin: autotools
     # We only need libcups (with headers, ...), ppdc plus *.defs files (for
-    # HPLIP build to updated hpcups PPD files)
+    # HPLIP build to updated hpcups PPD files), and the backends
     override-build: |
       set -eux
       ./configure --sysconfdir=/var/snap/hplip-printer-app/common/
       cd cups
       make
+      cd ..
+      cd backend
+      # Have USB quirk files in user-modifiable space for debugging
+      perl -p -i -e 's/"CUPS_DATADIR"/"USB_QUIRK_DIR"/' usb-libusb.c
+      make snmp dnssd socket ipp ipps lpd usb
       cd ..
       cd ppdc
       make ppdc
@@ -222,6 +232,11 @@ parts:
       cp cups/*.h $SNAPCRAFT_STAGE/usr/include/cups/
       mkdir -p $SNAPCRAFT_STAGE/usr/bin
       cp cups-config $SNAPCRAFT_STAGE/usr/bin/
+      mkdir -p $SNAPCRAFT_STAGE/usr/lib/hplip-printer-app/backend/
+      ( cd backend; \
+        cp snmp dnssd socket ipp ipps lpd usb org.cups.usb-quirks $SNAPCRAFT_STAGE/usr/lib/hplip-printer-app/backend/ \
+      )
+      cp conf/snmp.conf $SNAPCRAFT_STAGE/usr/lib/hplip-printer-app/backend/
       cp ppdc/ppdc $SNAPCRAFT_STAGE/usr/bin/
       mkdir -p $SNAPCRAFT_STAGE/usr/share/cups/ppdc/
       cp data/*.defs $SNAPCRAFT_STAGE/usr/share/cups/ppdc/
@@ -247,6 +262,7 @@ parts:
       - libpam0g-dev
       - libpaper-dev
       - libpng-dev
+      - perl-base
     stage-packages:
       - libavahi-common3
       - libavahi-client3
@@ -268,6 +284,15 @@ parts:
       - usr/lib
       - usr/lib/libcups.so.2
       - usr/lib/libcupsimage.so.2
+      - usr/lib/hplip-printer-app/backend/snmp
+      - usr/lib/hplip-printer-app/backend/dnssd
+      - usr/lib/hplip-printer-app/backend/socket
+      - usr/lib/hplip-printer-app/backend/ipp
+      - usr/lib/hplip-printer-app/backend/ipps
+      - usr/lib/hplip-printer-app/backend/lpd
+      - usr/lib/hplip-printer-app/backend/usb
+      - usr/lib/hplip-printer-app/backend/org.cups.usb-quirks
+      - usr/lib/hplip-printer-app/backend/snmp.conf
 
   cups-filters:
     source: https://github.com/OpenPrinting/cups-filters

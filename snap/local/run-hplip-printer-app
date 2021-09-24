@@ -4,6 +4,7 @@
 
 mkdir -p $SNAP_COMMON/ppd
 mkdir -p $SNAP_COMMON/spool
+mkdir -p $SNAP_COMMON/usb
 mkdir -p $SNAP_COMMON/cups/ssl
 mkdir -p $SNAP_COMMON/tmp
 chmod 1777 $SNAP_COMMON/tmp >/dev/null 2>&1 || :
@@ -11,10 +12,17 @@ chmod 1777 $SNAP_COMMON/tmp >/dev/null 2>&1 || :
 export TMPDIR=$SNAP_COMMON/tmp
 export FILTER_DIR=$SNAP/usr/lib/hplip-printer-app/filter
 export BACKEND_DIR=$SNAP/usr/lib/hplip-printer-app/backend
+export USB_QUIRK_DIR=$SNAP_COMMON
 export TESTPAGE_DIR=$SNAP/usr/share/hplip-printer-app
 export PPD_PATHS=$SNAP/usr/share/ppd/:$SNAP_COMMON/ppd/
 export STATE_FILE=$SNAP_COMMON/hplip-printer-app.state
 export SPOOL_DIR=$SNAP_COMMON/spool
 export CUPS_SERVERROOT=$SNAP_COMMON/cups
+export CUPS_SERVERBIN=$SNAP/usr/lib/hplip-printer-app
+
+cp $BACKEND_DIR/*.usb-quirks $USB_QUIRK_DIR/usb
+if [ ! -f $CUPS_SERVERROOT/snmp.conf ]; then
+    cp $BACKEND_DIR/snmp.conf $CUPS_SERVERROOT
+fi
 
 exec $SNAP/usr/bin/hplip-printer-app $*

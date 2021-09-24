@@ -75,7 +75,7 @@ first.
 - Note that the `hp` backend does not allow bi-directional access to
   the printer. If you have a PostScript printer and prefer support for
   remote querying of the printer's accessory configuration instead of
-  simultaneous printing and scanning, PAPPL's standard backends for USB
+  simultaneous printing and scanning, CUPS' standard backends for USB
   and network printers are also available.
 
 - If you have an unusal system configuration or a personal firewall
@@ -83,6 +83,13 @@ first.
   situation the standard backends, including the fully manual "Network
   Printer" entry in combination with the hostname/IP field can be
   helpful.
+
+- Use of CUPS' instead of PAPPL's standard backends makes quirk
+  workarounds for USB printers with compatibility problems being used
+  (and are editable) and the output can get sent to the printer via
+  IPP, IPPS (encrypted!), and LPD in addition to socket (usually port
+  9100). The SNMP backend can get configured (community, address
+  scope).
 
 - PWG Raster, Apple Raster or image input data to be printed on a
   non-PostScript printer does not get converted to PostScript or PDF,
@@ -222,6 +229,14 @@ for more options.
 Use the "-o log-level=debug" argument for verbose logging in your
 terminal window.
 
+You can add files to `/var/snap/hplip-printer-app/common/usb/` for
+additional USB quirk rules. Edit the existing files only for quick
+tests, as they get replaced at every update of the Snap (to introduce
+new rules).
+
+You can edit the `/var/snap/hplip-printer-app/common/cups/snmp.conf`
+file for configuring SNMP network printer discovery.
+
 
 ## BUILDING WITHOUT SNAP
 
@@ -283,7 +298,17 @@ are not supported.
 Jobs are filtered through `hpcups` and send to the printer via the
 `hp` backend (both USB and network).
 
-Make sure you have HPLIP installed.
+The standard (not HPLIP's) backends provided as alternative in this
+Printer Application are CUPS' backends and not PAPPL's, meaning that
+for USB printers CUPS' USB quirk workarounds for compatibility
+problems are used, network printers can also be used with IPP, IPPS,
+and LPD protocols, and SNMP printer discovery is configurable.
+
+USB Quirk rules in `/usr/share/cups/usb` and the `/etc/cups/snmp.conf`
+file can get edited if needed.
+
+Make sure you have HPLIP installed and if you want to use standard
+backends, CUPS (at least its backends).
 
 You also need Ghostscript to print PDF or PostScript jobs.
 
