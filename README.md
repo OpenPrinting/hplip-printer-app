@@ -122,6 +122,14 @@ first.
   option settings (the original options are still accessible via web
   admin interface).
 
+- The Snap of the HPLIP Printer Application takes HPLIP's source code
+  from Debian's packaging repository instead of directly from HP, as
+  Debian's package has ~80 patches fixing bugs which are reported to
+  HP but the patch not adopted upstream. So with the Snap users should
+  get the same experience in reliability and quality as with the
+  Debian package.
+
+
 ### To Do
 
 - Support for downloading the proprietary plugin of HPLIP via an

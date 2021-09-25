@@ -367,6 +367,13 @@ parts:
     after: [jpeglib, cups, qpdf, ghostscript]
 
   hplip:
+    # We use the Debian package source instead of the upstream source code
+    # of HPLIP as The Debian package has ~80 patches fixing bugs which are
+    # reported upstream but the patches not adopted upstrem.
+    # This way we should have the same user experience in terms of reliability
+    # and quality as with the Debian pacxkage.
+    # Note that the repository has all patches already applied, so we do
+    # not need to apply the before building.
     # Debian source
     source: https://salsa.debian.org/printing-team/hplip.git
     source-type: git
