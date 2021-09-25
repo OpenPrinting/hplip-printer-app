@@ -367,20 +367,30 @@ parts:
     after: [jpeglib, cups, qpdf, ghostscript]
 
   hplip:
-    source: https://sourceforge.net/projects/hplip/files/hplip/3.21.8/hplip-3.21.8.tar.gz
+    # Debian source
+    source: https://salsa.debian.org/printing-team/hplip.git
+    source-type: git
+    source-branch: debian/3.21.8+dfsg0-2
+    # Upstream source
+    #source: https://sourceforge.net/projects/hplip/files/hplip/3.21.8/hplip-3.21.8.tar.gz
     plugin: autotools
     build-environment:
       - PYTHON: python3
       - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$LD_LIBRARY_PATH
       - CUPS_DATADIR: $SNAPCRAFT_STAGE/usr/share/cups
-      - on amd64:
-        - IMAGEPROC: enable
-      - else:
-        - IMAGEPROC: disable
+      # Disable ImageProcesssor (for Debian source)
+      - IMAGEPROC: disable
+      # ImageProcessor oly on amd64 (for upstream source)
+      #- on amd64:
+      #  - IMAGEPROC: enable
+      #- else:
+      #  - IMAGEPROC: disable
       - on arm64:
         - BUILDARCH: aarch64-unknown-linux-gnu
       - else:
         - BUILDARCH: $SNAPCRAFT_ARCH_TRIPLET
+    # Paremeter list here only needed for upstream source, but no need to
+    # comment out for Debian source
     autotools-configure-parameters:
       - --build=$BUILDARCH
       - --prefix=/usr
@@ -392,8 +402,10 @@ parts:
       - --without-icondir
       - --enable-hpcups-install
       - --disable-cups-drv-install
+      - --enable-cups-ppd-install
       - --disable-hpijs-install
       - --disable-foomatic-drv-install
+      - --disable-foomatic-ppd-install
       - --$IMAGEPROC-imageProcessor-build
       - --enable-network-build
       - --disable-class-driver
@@ -410,13 +422,51 @@ parts:
       set -eux
       # Correct hard-coded /etc/hp/ path in Makefile
       perl -p -i -e 's:/etc/hp:/snap/hplip-printer-app/current/etc/hp:' Makefile*
-      # Remove hard-coded linking of binary-only libImageProcessor for
-      # in Makefile for non-amd64 architectures
-      if echo $SNAPCRAFT_ARCH_TRIPLET | grep -qv x86_64; then
-        perl -p -i -e 's: -lImageProcessor::' Makefile*
-      fi
-      # Do the "./configure; make; make install"
-      snapcraftctl build
+      # Remove hard-coded linking of binary-only libImageProcessor
+      # in Makefile for non-amd64 architectures (for upstream source)
+      #if echo $SNAPCRAFT_ARCH_TRIPLET | grep -qv x86_64; then
+      #  perl -p -i -e 's: -lImageProcessor::' Makefile*
+      #fi
+      # Do the "./configure" (for Debian source)
+      sh debian/autogen.sh
+      ./configure \
+        --build=$BUILDARCH \
+        --prefix=/usr \
+        --disable-foomatic-rip-hplip-install \
+        --without-docdir \
+        --without-htmldir \
+        --with-hpppddir=/usr/share/ppd/hplip/HP \
+        --without-drvdir \
+        --without-icondir \
+        --enable-hpcups-install \
+        --disable-cups-drv-install \
+        --enable-cups-ppd-install \
+        --disable-hpijs-install \
+        --disable-foomatic-drv-install \
+        --disable-foomatic-ppd-install \
+        --$IMAGEPROC-imageProcessor-build \
+        --enable-network-build \
+        --disable-class-driver \
+        --disable-scan-build \
+        --disable-gui-build \
+        --disable-fax-build \
+        --disable-qt3 \
+        --disable-qt4 \
+        --disable-qt5 \
+        --disable-policykit
+      # Following step needed because of the Debian patches (for Debian source)
+      # Compress various files before building, they are needed for the build,
+      # and were compressed in the non-repacked upstream tarballs
+      find . -name '*.ppd' | xargs gzip -f
+      find data/ -regextype posix-extended -regex '.*\.(ldl|pcl|ps|pdf)' | xargs gzip -f
+      # Following step needed because of the Debian patches (for Debian source)
+      # Rebuild the .drv.in files from drv.in.template
+      python3 ./dat2drv.py
+      # Do the "./configure; make; make install" (for upstream source)
+      # snapcraftctl build
+      # Do the "make; make install" (for Debian source)
+      make
+      make DESTDIR=`pwd`/../install install
       # Correct hard-coded paths in hplip.conf
       ( cd ../install/snap/hplip-printer-app/current/etc/hp; \
         perl -p -i -e 's:/var/:/var/snap/hplip-printer-app/common/var/:' hplip.conf; \
@@ -437,6 +487,14 @@ parts:
           perl -p -i -e 's:^\s*\#\!\s*/usr/bin/env\s+python.*:#!/snap/hplip-printer-app/current/usr/bin/python3:' `readlink -f $file`; \
         done; \
       )
+      # "make install" install Python extension modules to the wrong place
+      # (for Debian source)
+      rm ../install/usr/lib/python*/site-packages/*.la
+      mkdir -p ../install/usr/lib/python3/dist-packages
+      mv ../install/usr/lib/python*/site-packages/*.so ../install/usr/lib/python3/dist-packages
+      # "make install" misses to install the PostScript PPD files, do it now
+      # (for Debian source)
+      cp prnt/ps/*.ppd.gz ../install/usr/share/ppd/hplip/HP/
       # Handle the PPD files: Unzip, remove "(recommended)" (we have only
       # HPLIP here, no other driver), compress into self-extracting archive
       ( cd ../install/usr/share/ppd/hplip/HP/; \
@@ -453,10 +511,10 @@ parts:
       # Snap and everything needs Python 3)
       ln -sf python3 ../install/usr/bin/python
       # Install the binary-only libImageProcessor only if we build the Snap for
-      # amd64 (x86_64)
-      if echo $SNAPCRAFT_ARCH_TRIPLET | grep -q x86_64; then
-        cp prnt/hpcups/libImageProcessor-x86_64.so ../install/usr/lib/libImageProcessor.so
-      fi
+      # amd64 (x86_64) (for upstream source)
+      #if echo $SNAPCRAFT_ARCH_TRIPLET | grep -q x86_64; then
+      #  cp prnt/hpcups/libImageProcessor-x86_64.so ../install/usr/lib/libImageProcessor.so
+      #fi
     build-packages:
       - ubuntu-dev-tools
       - dpkg-dev
