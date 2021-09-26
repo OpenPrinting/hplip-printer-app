@@ -368,12 +368,12 @@ parts:
 
   hplip:
     # We use the Debian package source instead of the upstream source code
-    # of HPLIP as The Debian package has ~80 patches fixing bugs which are
-    # reported upstream but the patches not adopted upstrem.
+    # of HPLIP as the Debian package has ~80 patches fixing bugs which are
+    # reported upstream but the patches not adopted upstream.
     # This way we should have the same user experience in terms of reliability
-    # and quality as with the Debian pacxkage.
+    # and quality as with the Debian package.
     # Note that the repository has all patches already applied, so we do
-    # not need to apply the before building.
+    # not need to apply them before building.
     # Debian source
     source: https://salsa.debian.org/printing-team/hplip.git
     source-type: git
