@@ -91,6 +91,9 @@ main(int  argc,				// I - Number of command-line arguments
     NULL,                     // Printer identify callback (HPLIP backend
                               // does not support this)
     pr_testpage,              // Test page print callback
+    NULL,                     // No extra setup steps for the system
+    pr_setup_device_settings_page, // Set up "Device Settings" printer web
+                              // interface page
     spooling_conversions,     // Array of data format conversion rules for
                               // printing in spooling mode
     stream_formats,           // Arrray for stream formats to be generated
