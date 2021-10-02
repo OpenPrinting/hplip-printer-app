@@ -103,7 +103,7 @@ main(int  argc,				// I - Number of command-line arguments
                               // If empty all but the ignored backends are used
     TESTPAGE,                 // Test page (printable file), used by the
                               // standard test print callback pr_testpage()
-    ", +hpcups +[0-9]+\\.[0-9]+\\.[0-9]+()$|(\\W*[Pp]ost[Ss]cript).*$",
+    ", +hpcups +[0-9]+\\.[0-9]+\\.[0-9]+[, ]*(.*)$|(\\W*[Pp]ost[Ss]cript).*$",
                               // Regular expression to separate the
                               // extra information after make/model in
                               // the PPD's *NickName. Also extracts a

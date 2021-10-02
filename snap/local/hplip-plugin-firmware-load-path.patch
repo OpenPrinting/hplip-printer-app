@@ -1,0 +1,11 @@
+--- base/device.py.orig	2021-10-01 21:15:42.022561141 +0200
++++ base/device.py	2021-10-01 21:17:40.471403504 +0200
+@@ -2622,7 +2622,7 @@
+ 
+     def downloadFirmware(self, usb_bus_id=None, usb_device_id=None): # Note: IDs not currently used
+         ok = False
+-        filename = os.path.join(prop.data_dir, "firmware", self.model.lower() + '.fw.gz')
++        filename = '/var/snap/hplip-printer-app/common/plugin/' + self.model.lower() + '.fw.gz'
+         log.debug(filename)
+ 
+         if os.path.exists(filename):

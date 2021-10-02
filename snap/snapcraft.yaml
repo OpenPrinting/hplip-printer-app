@@ -32,7 +32,7 @@ apps:
   hplip-printer-app-server:
     command: scripts/run-hplip-printer-app-server
     daemon: simple
-    plugs: [avahi-control, home, network, network-bind, raw-usb]
+    plugs: [avahi-control, home, network, network-bind, raw-usb, hardware-observe]
   hplip-printer-app:
     command: scripts/run-hplip-printer-app
     plugs: [avahi-control, home, network, network-bind, raw-usb]
@@ -469,6 +469,14 @@ parts:
       # Following step needed because of the Debian patches (for Debian source)
       # Rebuild the .drv.in files from drv.in.template
       python3 ./dat2drv.py
+      # Correct hard-coded paths in C/C++ source code
+      # The /etc/... and /usr/... paths in these files do not need to get
+      # corrected, only the /var/... ones
+      perl -p -i -e 's:\"/var/lib/hp:\"/var/snap/hplip-printer-app/common/var/:' common/utils.[ch]
+      # Set path for dynamic link libraries of the proprietary plugin
+      # We have to apply this patch here as patches on the C/C++ code need
+      # to get applied before compiling
+      patch -p0 < $SNAPCRAFT_STAGE/patches/hplip-plugin-library-load-path.patch
       # Do the "./configure; make; make install" (for upstream source)
       # snapcraftctl build
       # Do the "make; make install" (for Debian source)
@@ -486,7 +494,12 @@ parts:
       # Python
       ( cd ../install/usr/share/hplip/
         perl -p -i -e 's:/var/(\S+)/hp:/var/snap/hplip-printer-app/common/var/\1/hp:' *.py */*.py */*/*.py
+        perl -p -i -e 's:/var/lib/hp:/var:' *.py */*.py */*/*.py
         perl -p -i -e 's:/etc/hp:/snap/hplip-printer-app/current/etc/hp:' *.py */*.py */*/*.py
+        # Set path for firmware files of the proprietary plugin
+        # We have to apply this patch here so that the global corrections done
+        # right above do not mess it up
+        patch -p0 < $SNAPCRAFT_STAGE/patches/hplip-plugin-firmware-load-path.patch
       )
       # Correct Python shebang in the utilities
       ( cd ../install; \
@@ -593,7 +606,7 @@ parts:
       - usr/share/snmp
       - usr/lib/hplip-printer-app
       - -usr/lib/cups
-    after: [cups]
+    after: [cups, patches]
 
   hplip-printer-app:
     plugin: make
@@ -682,7 +695,14 @@ parts:
       # network printers using the hp-probe utility, as
       # HPLIP's "hp" backend only discovers USB printers
       HP: usr/lib/hplip-printer-app/backend/HP
+    stage-packages:
+      - udev
     prime:
+      - -etc
+      - bin
+      - -bin/systemd-hwdb
+      - -lib
       - scripts/
       - usr/lib/hplip-printer-app/backend/
+      - -usr/lib/tmpfiles.d
     after: [hplip-printer-app]

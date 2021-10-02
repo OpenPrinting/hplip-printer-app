@@ -7,6 +7,7 @@ mkdir -p $SNAP_COMMON/spool
 mkdir -p $SNAP_COMMON/usb
 mkdir -p $SNAP_COMMON/cups/ssl
 mkdir -p $SNAP_COMMON/tmp
+mkdir -p $SNAP_COMMON/var
 chmod 1777 $SNAP_COMMON/tmp >/dev/null 2>&1 || :
 
 export TMPDIR=$SNAP_COMMON/tmp
