@@ -177,20 +177,6 @@ the Snap Store:
 sudo snap install --edge hplip-printer-app
 ```
 
-It will currently need manual connection of some interfaces:
-
-```
-sudo snap connect hplip-printer-app:avahi-control
-sudo snap connect hplip-printer-app:raw-usb
-```
-
-Re-start the Snap after connecting the interfaces:
-
-```
-sudo snap stop hplip-printer-app
-sudo snap start hplip-printer-app
-```
-
 Then follow the instructions below for setting it up.
 
 To build the Snap by yourself, in the main directory of this
