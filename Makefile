@@ -10,8 +10,9 @@
 
 # Version and
 VERSION		=	1.0
-prefix		=	$(DESTDIR)/usr
-localstatedir	=	$(DESTDIR)/var
+prefix		=	/usr
+sysconfdir	=	/etc
+localstatedir	=	/var
 includedir	=	$(prefix)/include
 bindir		=	$(prefix)/bin
 libdir		=	$(prefix)/lib
@@ -22,14 +23,22 @@ spooldir	=	$(localstatedir)/spool/hplip-printer-app
 serverbin	=	$(prefix)/lib/hplip-printer-app
 resourcedir	=	$(prefix)/share/hplip-printer-app
 cupsserverbin	=	`cups-config  --serverbin`
-unitdir 	:=	$(DESTDIR)`pkg-config --variable=systemdsystemunitdir systemd`
-
+unitdir 	=	`pkg-config --variable=systemdsystemunitdir systemd`
+HPLIP_CONF_DIR  =       $(sysconfdir)/hp
+HPLIP_PLUGIN_STATE_DIR = $(localstatedir)/lib/hp
 
 # Compiler/linker options...
 OPTIM		=	-Os -g
-CFLAGS		+=	`pkg-config --cflags pappl` `cups-config --cflags` `pkg-config --cflags libppd` `pkg-config --cflags libcupsfilters` `pkg-config --cflags libpappl-retrofit` $(OPTIM)
+DIRS		=	-DHPLIP_CONF_DIR=\"$(HPLIP_CONF_DIR)\" -DHPLIP_PLUGIN_STATE_DIR=\"$(HPLIP_PLUGIN_STATE_DIR)\"
+ifdef HPLIP_PLUGIN_ALT_DIR
+DIRS		+=	-DHPLIP_PLUGIN_ALT_DIR=\"$(HPLIP_PLUGIN_ALT_DIR)\"
+endif
+CFLAGS		+=	`pkg-config --cflags pappl` `cups-config --cflags` `pkg-config --cflags libppd` `pkg-config --cflags libcupsfilters` `pkg-config --cflags libpappl-retrofit` `pkg-config --cflags libcurl` `pkg-config --cflags libcrypto` $(DIRS) $(OPTIM)
+ifdef SNAP
+CFLAGS		+=	-DSNAP=$(SNAP)
+endif
 LDFLAGS		+=	$(OPTIM) `cups-config --ldflags`
-LIBS		+=	`pkg-config --libs pappl` `cups-config --image --libs` `pkg-config --libs libppd` `pkg-config --libs libcupsfilters` `pkg-config --libs libpappl-retrofit`
+LIBS		+=	`pkg-config --libs pappl` `cups-config --image --libs` `pkg-config --libs libppd` `pkg-config --libs libcupsfilters` `pkg-config --libs libpappl-retrofit` `pkg-config --libs libcurl` `pkg-config --libs libcrypto`
 
 
 # Targets...
@@ -50,29 +59,31 @@ clean:
 	rm -f $(TARGETS) $(OBJS)
 
 install:	$(TARGETS)
-	mkdir -p $(bindir)
-	cp $(TARGETS) $(bindir)
-	mkdir -p $(mandir)/man1
-	cp hplip-printer-app.1 $(mandir)/man1
-	mkdir -p $(ppddir)
-	mkdir -p $(statedir)/ppd
-	mkdir -p $(spooldir)
-	mkdir -p $(resourcedir)
-	cp testpage.ps $(resourcedir)
+	mkdir -p $(DESTDIR)$(bindir)
+	cp $(TARGETS) $(DESTDIR)$(bindir)
+	mkdir -p $(DESTDIR)$(mandir)/man1
+	cp hplip-printer-app.1 $(DESTDIR)$(mandir)/man1
+	mkdir -p $(DESTDIR)$(ppddir)
+	mkdir -p $(DESTDIR)$(statedir)/ppd
+	mkdir -p $(DESTDIR)$(spooldir)
+	mkdir -p $(DESTDIR)$(resourcedir)
+	cp testpage.ps $(DESTDIR)$(resourcedir)
 	if test "x$(cupsserverbin)" != x && [ -d $(cupsserverbin) ]; then \
-	  mkdir -p $(libdir); \
-	  touch $(serverbin) 2> /dev/null || :; \
-	  if rm $(serverbin) 2> /dev/null; then \
-	    ln -s $(cupsserverbin) $(serverbin); \
+	  mkdir -p $(DESTDIR)$(libdir); \
+	  touch $(DESTDIR)$(serverbin) 2> /dev/null || :; \
+	  if rm $(DESTDIR)$(serverbin) 2> /dev/null; then \
+	    ln -s $(cupsserverbin) $(DESTDIR)$(serverbin); \
 	  fi; \
+	  mkdir -p $(DESTDIR)$(cupsserverbin)/backend; \
+	  cp HP $(DESTDIR)$(cupsserverbin)/backend; \
 	else \
-	  mkdir -p $(serverbin)/filter; \
-	  mkdir -p $(serverbin)/backend; \
+	  mkdir -p $(DESTDIR)$(serverbin)/filter; \
+	  mkdir -p $(DESTDIR)$(serverbin)/backend; \
+	  cp HP $(DESTDIR)$(serverbin)/backend; \
 	fi
-	cp HP $(serverbin)/backend
 	if test "x$(unitdir)" != x; then \
-	  mkdir -p $(unitdir); \
-	  cp hplip-printer-app.service $(unitdir); \
+	  mkdir -p $(DESTDIR)$(unitdir); \
+	  cp hplip-printer-app.service $(DESTDIR)$(unitdir); \
 	fi
 
 hplip-printer-app:	$(OBJS)

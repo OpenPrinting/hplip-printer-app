@@ -535,6 +535,9 @@ parts:
       #if echo $SNAPCRAFT_ARCH_TRIPLET | grep -q x86_64; then
       #  cp prnt/hpcups/libImageProcessor-x86_64.so ../install/usr/lib/libImageProcessor.so
       #fi
+      # Install the public key for verifying the signature of the proprietary
+      # plugin (for Debian source)
+      cp debian/upstream/signing-key.asc ../install/usr/share/hplip/
     build-packages:
       - ubuntu-dev-tools
       - dpkg-dev
@@ -613,10 +616,14 @@ parts:
     source: .
     make-parameters:
       - LDFLAGS="$LDFLAGS -ljpeg"
+      - SNAP=1
+      - HPLIP_CONF_DIR=/snap/hplip-printer-app/current/etc/hp
+      - HPLIP_PLUGIN_STATE_DIR=/var/snap/hplip-printer-app/common/var
+      - HPLIP_PLUGIN_ALT_DIR=/var/snap/hplip-printer-app/common
     # To improve convenience for developers (and everyone who wants to
     # build from source), we do a "make clean" before "make" here,
     # because if we had done "make" off-Snap, directly in the source
-    # tree. and afterwards build the Snap with snapcraft, the build
+    # tree, and afterwards build the Snap with snapcraft, the build
     # sucks in our local binary of hplip-printer-app instead of
     # compiling its own one in the Snap harness with the appropriate
     # libraries, ending up with the Snap containing an executable
@@ -628,16 +635,39 @@ parts:
       snapcraftctl build
     build-packages:
       - libusb-1.0-0-dev
+      - libcurl4-gnutls-dev
+      - libssl-dev
     stage-packages:
       - libusb-1.0-0
       - libjbig0
       - liblcms2-2
       - libtiff5
       - libwebp6
+      - libcurl3-gnutls
+      - libssl1.1
+      - libasn1-8-heimdal
+      - libgssapi3-heimdal
+      - libhcrypto4-heimdal
+      - libheimbase1-heimdal
+      - libheimntlm0-heimdal
+      - libhx509-5-heimdal
+      - libkrb5-26-heimdal
+      - libldap-2.4-2
+      - libnghttp2-14
+      - libroken18-heimdal
+      - librtmp1
+      - libsasl2-2
+      - libssh-4
+      - libwind0-heimdal
+      - gpg
+      - gpg-agent
     stage:
+      - lib
       - -var
       - usr/bin/hplip-printer-app
+      - usr/bin/gpg*
       - -usr/include
+      - usr/lib
       - -usr/lib/pkgconfig
       - -usr/share/fonts
       - -usr/share/man
@@ -647,9 +677,12 @@ parts:
       - usr/share/hplip-printer-app
       - -usr/lib/hplip-printer-app
     prime:
+      - lib
       - -var
       - usr/bin/hplip-printer-app
+      - usr/bin/gpg*
       - -usr/include
+      - usr/lib
       - -usr/lib/pkgconfig
       - -usr/share/fonts
       - -usr/share/man

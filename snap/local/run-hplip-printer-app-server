@@ -2,58 +2,67 @@
 
 #set -e -x
 
-# Start the Printer Application, also in the background
+# Import HP's public key to veryfy the downlaoded archive of the proprietary
+# plugin
+export HOME=$SNAP_COMMON/tmp
+mkdir -p $SNAP_COMMON/tmp
+gpg --homedir ~ --no-permission-warning --import $SNAP/usr/share/hplip/signing-key.asc
+
+# Start the Printer Application, in the background
 exec $SNAP/scripts/run-hplip-printer-app -o log-file=$SNAP_COMMON/hplip-printer-app.log server "$@" &
+#exec $SNAP/scripts/run-hplip-printer-app -o log-level=debug -o log-file=$SNAP_COMMON/hplip-printer-app.log server "$@" &
 PRINTER_APP_PID=$!
 
 export LC_ALL=C
 UDEVADM_PID=
 
 # Is the plugin installed? Is its state file present? Is the plugin for
-# the correct HPLIP version?
+# the correct HPLIP version? If not, wait and check again every 5 seconds
+# If yes, start monitoring the USB for printers to load firmware
 HPLIP_VERSION=`grep 'version' $SNAP/etc/hp/hplip.conf | perl -p -e 's/^\s*version\s*=\s*([\d\.]+)\s*/\1/i'`
-if [ -d $SNAP_COMMON/plugin ] && [ -r $SNAP_COMMON/var/hplip.state ] &&
-   grep -qi 'version *= *'"$HPLIP_VERSION" $SNAP_COMMON/var/hplip.state; then
-    # Monitor appearing/disappearing of USB devices in the background, if an
-    # HP printer appears check if it needs its firmware laoded
-    udevadm monitor -k -s usb | while read START OP DEV REST; do
-        if test "$START" = "KERNEL"; then
-            # First lines of "udevadm monitor" output, check for already plugged
-            # devices. Consider only USB printers (interface 7/1/?) from HP
-            # (idVendor=03f0)
-            for DEV in `udevadm trigger -v -n --subsystem-match=usb --attr-match=idVendor=03f0 --property-match=ID_USB_INTERFACES='*:0701??:*'`; do
-                # HP printer already connected
-                # Check whether the printer needs its firmware to be loaded and
-                # if so upload the firmware
-                $SNAP/usr/bin/hp-firmware -n -y3 -s `udevadm info -q property $DEV | egrep '^(BUSNUM|DEVNUM)=' | perl -e '$a = join("", <>); $a =~ s/BUSNUM=(\d+).*?DEVNUM=(\d+)/\1:\2/si; print $a'`
-            done
-        elif test "$OP" = "add"; then
-            # New device got added
-            if [ -z $DEV ]; then
-                # Missing device path
-                continue
-            else
-                # Is the device a printer (interface 7/1/?) from HP
-                # (ID_VENDOR_ID=03f0)?
-                # Retry 5 times as sometimes the ID_USB_INTERFACES property is
-                # not immediately set
-                for i in 1 2 3 4 5; do
-                    # Give some time for ID_USB_INTERFACES property to appear
-                    sleep 0.02
-                    # Check ID_USB_INTERFACE for 7/1/? interface
-		    if [ `udevadm trigger -v -n --subsystem-match=usb --attr-match=idVendor=03f0 --property-match=ID_USB_INTERFACES='*:0701??:*' /sys$DEV | wc -l` -gt 0 ]; then
-                        # HP printer got connected now
-                        # Check whether the printer needs its firmware to be
-                        # loaded and if so upload the firmware
-                        $SNAP/usr/bin/hp-firmware -n -y3 -s `udevadm info -q property -p $DEV | egrep '^(BUSNUM|DEVNUM)=' | perl -e '$a = join("", <>); $a =~ s/BUSNUM=(\d+).*?DEVNUM=(\d+)/\1:\2/si; print $a'`
-                        break
-                    fi
-                done
-            fi
-        fi
-    done &
-    UDEVADM_PID=$!
-fi
+( while [ ! -d $SNAP_COMMON/plugin ] || [ ! -r $SNAP_COMMON/var/hplip.state ] ||
+    ! grep -qi 'version *= *'"$HPLIP_VERSION" $SNAP_COMMON/var/hplip.state; do
+      sleep 5
+  done
+  # Monitor appearing/disappearing of USB devices in the background, if an
+  # HP printer appears check if it needs its firmware laoded
+  udevadm monitor -k -s usb | while read START OP DEV REST; do
+      if test "$START" = "KERNEL"; then
+          # First lines of "udevadm monitor" output, check for already plugged
+          # devices. Consider only USB printers (interface 7/1/?) from HP
+          # (idVendor=03f0)
+          for DEV in `udevadm trigger -v -n --subsystem-match=usb --attr-match=idVendor=03f0 --property-match=ID_USB_INTERFACES='*:0701??:*'`; do
+              # HP printer already connected
+              # Check whether the printer needs its firmware to be loaded and
+              # if so upload the firmware
+              $SNAP/usr/bin/hp-firmware -n -y3 -s `udevadm info -q property $DEV | egrep '^(BUSNUM|DEVNUM)=' | perl -e '$a = join("", <>); $a =~ s/BUSNUM=(\d+).*?DEVNUM=(\d+)/\1:\2/si; print $a'`
+          done
+      elif test "$OP" = "add"; then
+          # New device got added
+          if [ -z $DEV ]; then
+              # Missing device path
+              continue
+          else
+              # Is the device a printer (interface 7/1/?) from HP
+              # (ID_VENDOR_ID=03f0)?
+              # Retry 5 times as sometimes the ID_USB_INTERFACES property is
+              # not immediately set
+              for i in 1 2 3 4 5; do
+                  # Give some time for ID_USB_INTERFACES property to appear
+                  sleep 0.02
+                  # Check ID_USB_INTERFACE for 7/1/? interface
+		  if [ `udevadm trigger -v -n --subsystem-match=usb --attr-match=idVendor=03f0 --property-match=ID_USB_INTERFACES='*:0701??:*' /sys$DEV | wc -l` -gt 0 ]; then
+                      # HP printer got connected now
+                      # Check whether the printer needs its firmware to be
+                      # loaded and if so upload the firmware
+                      $SNAP/usr/bin/hp-firmware -n -y3 -s `udevadm info -q property -p $DEV | egrep '^(BUSNUM|DEVNUM)=' | perl -e '$a = join("", <>); $a =~ s/BUSNUM=(\d+).*?DEVNUM=(\d+)/\1:\2/si; print $a'`
+                      break
+                  fi
+              done
+          fi
+      fi
+  done ) &
+UDEVADM_PID=$!
 
 # Wait for the Printer Application to terminate
 wait $PRINTER_APP_PID
