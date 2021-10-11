@@ -21,9 +21,4 @@ export SPOOL_DIR=$SNAP_COMMON/spool
 export CUPS_SERVERROOT=$SNAP_COMMON/cups
 export CUPS_SERVERBIN=$SNAP/usr/lib/hplip-printer-app
 
-cp $BACKEND_DIR/*.usb-quirks $USB_QUIRK_DIR/usb
-if [ ! -f $CUPS_SERVERROOT/snmp.conf ]; then
-    cp $BACKEND_DIR/snmp.conf $CUPS_SERVERROOT
-fi
-
 exec $SNAP/usr/bin/hplip-printer-app $*
