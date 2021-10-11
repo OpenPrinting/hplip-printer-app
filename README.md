@@ -129,20 +129,19 @@ first.
   get the same experience in reliability and quality as with the
   Debian package.
 
-
-### To Do
-
 - Support for downloading the proprietary plugin of HPLIP via an
   additional page in the web interface. This adds support for some
   laser printers which need their firmware loaded every time they are
-  turned on or which use certain proprietary print data formats.
+  turned on or which use certain proprietary print data formats. This
+  works both in the Snap and in the classic installation of the
+  Printer Application (must run as root, otherwise only status check
+  of the plugin).
+
+### To Do
 
 - Support for scanning on HP's multi-function printers. this requires
   scanning support in PAPPL (which made [good progress in GSoC
   2021](https://github.com/michaelrsweet/pappl/commits/scanning)).
-
-- Include at least some of the 81 patches of the Debian package of
-  HPLIP to fix some bugs.
 
 - PDF test page, for example generated with the bannertopdf filter.
 
@@ -162,8 +161,6 @@ first.
 - Build options for cups-filters, to build without libqpdf and/or
   without libppd, the former will allow to create the Snap of this
   Printer Application without downloading and building QPDF
-
-- Better way to download HPLIP for grabbing the hpijs filter
 
 
 ## THE SNAP
@@ -211,9 +208,16 @@ http://localhost:8000/
 
 Use the web interface to add a printer. Supply a name, select the
 discovered printer, then select make and model. Also set the installed
-accessories, loaded media and the option defaults. Accessory
-configuration and option defaults can also offen get polled from the
-printer.
+accessories, loaded media and the option defaults. If the printer is a
+PostScript printer, accessory configuration and option defaults can
+also often get polled from the printer.
+
+If the entry of your printer in the web interface has the remark
+"requires proprietary plugin", you need to install HP's plugin. For
+this, click on the "Plugin" button in this printer entry or on the
+"Install Proprietary Plugin" button under "Other Settings" on the
+front page of the web interface and follow the instructions on the
+screen.
 
 Then print PDF, PostScript, JPEG, Apple Raster, or PWG Raster files
 with
