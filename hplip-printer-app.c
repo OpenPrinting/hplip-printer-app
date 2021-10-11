@@ -12,6 +12,8 @@
 // Include necessary headers...
 //
 
+#define _GNU_SOURCE
+
 #include <pappl-retrofit/base.h>
 #include <curl/curl.h>
 #include <sys/stat.h>
@@ -21,7 +23,6 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <dirent.h>
-
 
 //
 // Constants...
@@ -309,7 +310,6 @@ hplip_version(pappl_system_t *system)
   char buf[1024];
   FILE *fp;
   char *version = NULL;
-  int in_hplip_section = 0;
 
 
   snprintf(buf, sizeof(buf), "%s/%s", HPLIP_CONF_DIR, "hplip.conf");
@@ -540,7 +540,7 @@ hplip_get_uncompress_dir(pappl_system_t *system, int create)
 
 
 //
-// 'hplip_remove_uncompress_dir() - Eemove the uncompressed plugin
+// 'hplip_remove_uncompress_dir() - Remove the uncompressed plugin
 //                                  file when we do not need it any more
 //
 
@@ -883,6 +883,106 @@ hplip_download_plugin(pappl_system_t *system)
 }
 
 
+#ifdef SNAP
+//
+// 'hplip_register_plugin() - Register the plugin installation or
+//                            removal in the hplip,state file (in the
+//                            Snap only).
+//
+
+int
+hplip_register_plugin(pappl_system_t *system, const char *installed,
+		      const char *eula, const char *version)
+{
+  int ret = 0;
+  char buf[1024];
+  char *filebuf = NULL;
+  int size_needed;
+  FILE *fp;
+
+
+  // Register installation or removal of plugin in hplip.state
+  // Open current file, if present
+  snprintf(buf, sizeof(buf), "%s/%s", HPLIP_PLUGIN_STATE_DIR, "hplip.state");
+  papplLog(system, PAPPL_LOGLEVEL_DEBUG,
+	   "Registering plugin installation status in %s", buf);
+  if ((fp = fopen(buf, "r")) == NULL && errno != ENOENT)
+  {
+    papplLog(system, PAPPL_LOGLEVEL_ERROR,
+	     "Unable to open HPLIP plugin status file %s: %s",
+	     buf, strerror(errno));
+    goto out;
+  }
+
+  if (fp)
+  {
+    // Load complete file into a buffer (if we have a state file)
+    fseek(fp, 0L, SEEK_END);
+    size_needed = ftell(fp);
+    filebuf = (char *)calloc(size_needed + 1, sizeof(char));
+    rewind(fp);
+    if (fread(filebuf, 1, size_needed, fp) != size_needed)
+    {
+      papplLog(system, PAPPL_LOGLEVEL_ERROR,
+	       "Unable to read HPLIP plugin status file %s: %s",
+	       buf, strerror(errno));
+      fclose(fp);
+      goto out;
+    }
+    fclose(fp);
+    filebuf[size_needed] = '\0';
+  }
+
+  // Modify the values in the buffer
+  if (set_config_value(&filebuf, "plugin", "installed", installed) +
+      set_config_value(&filebuf, "plugin", "eula", eula) +
+      set_config_value(&filebuf, "plugin", "version", version) > 0)
+  {
+    // File has changed, rewrite it
+    // Remove the old file
+    if (unlink(buf) != 0 && errno != ENOENT)
+    {
+      papplLog(system, PAPPL_LOGLEVEL_ERROR,
+	       "Unable to delete old HPLIP plugin status file %s: %s",
+	       buf, strerror(errno));
+      free(filebuf);
+      goto out;
+    }
+
+    // Write new file
+    if ((fp = fopen(buf, "w")) == NULL)
+    {
+      papplLog(system, PAPPL_LOGLEVEL_ERROR,
+	       "Unable to open HPLIP plugin status file %s: %s",
+	       buf, strerror(errno));
+      free(filebuf);
+      goto out;
+    }
+    if (fwrite(filebuf, 1, strlen(filebuf), fp) != strlen(filebuf))
+    {
+      papplLog(system, PAPPL_LOGLEVEL_ERROR,
+	       "Unable to write to HPLIP plugin status file %s: %s",
+	       buf, strerror(errno));
+      free(filebuf);
+      fclose(fp);
+      goto out;
+    }
+
+    fclose(fp);
+  }
+
+  // Done
+  papplLog(system, PAPPL_LOGLEVEL_DEBUG,
+	   "Registered plugin installation status successfully.");
+  ret = 1;
+
+ out:
+
+  return (ret);
+}
+#endif // SNAP
+
+
 //
 // 'hplip_install_plugin() - Install the downloaded plugin, after the
 //                           license got accepted in the web
@@ -906,7 +1006,7 @@ hplip_install_plugin(pappl_system_t *system, const char *plugin_dir)
 
 #ifdef SNAP
 
-  int (len);
+  int len;
   char buf1[1024], buf2[1024];
   DIR *d;
   struct dirent *entry;
@@ -984,79 +1084,15 @@ hplip_install_plugin(pappl_system_t *system, const char *plugin_dir)
   }
 
   // Register installed plugin version in hplip.state
-  // Open current file, if present
-  snprintf(buf1, sizeof(buf1), "%s/%s", HPLIP_PLUGIN_STATE_DIR, "hplip.state");
-  papplLog(system, PAPPL_LOGLEVEL_DEBUG,
-	   "Registering plugin installation status in %s", buf1);
-  if ((fp = fopen(buf1, "r")) == NULL && errno != ENOENT)
+  if (!hplip_register_plugin(system, "1", "1", version))
   {
     papplLog(system, PAPPL_LOGLEVEL_ERROR,
-	     "Unable to open HPLIP plugin status file %s: %s",
-	     buf1, strerror(errno));
+	     "Unable to register HPLIP plugin installation status.");
+    free(version);
     goto out;
   }
 
-  if (fp)
-  {
-    // Load complete file into a buffer (if we have one)
-    fseek(fp, 0L, SEEK_END);
-    size_needed = ftell(fp);
-    filebuf = (char *)calloc(size_needed + 1, sizeof(char));
-    rewind(fp);
-    if (fread(filebuf, 1, size_needed, fp) != size_needed)
-    {
-      papplLog(system, PAPPL_LOGLEVEL_ERROR,
-	       "Unable to read HPLIP plugin status file %s: %s",
-	       buf1, strerror(errno));
-      fclose(fp);
-      free(version);
-      goto out;
-    }
-    fclose(fp);
-    filebuf[size_needed] = '\0';
-  }
-
-  // Modify the values in the buffer
-  if (set_config_value(&filebuf, "plugin", "installed", "1") +
-      set_config_value(&filebuf, "plugin", "eula", "1") +
-      set_config_value(&filebuf, "plugin", "version", version) > 0)
-  {
-    free(version);
-
-    // File has changed, rewrite it
-    // Remove the old file
-    if (unlink(buf1) != 0 && errno != ENOENT)
-    {
-      papplLog(system, PAPPL_LOGLEVEL_ERROR,
-	       "Unable to delete old HPLIP plugin status file %s: %s",
-	       buf1, strerror(errno));
-      free(filebuf);
-      goto out;
-    }
-
-    // Write new file
-    if ((fp = fopen(buf1, "w")) == NULL)
-    {
-      papplLog(system, PAPPL_LOGLEVEL_ERROR,
-	       "Unable to open HPLIP plugin status file %s: %s",
-	       buf1, strerror(errno));
-      free(filebuf);
-      goto out;
-    }
-    if (fwrite(filebuf, 1, strlen(filebuf), fp) != strlen(filebuf))
-    {
-      papplLog(system, PAPPL_LOGLEVEL_ERROR,
-	       "Unable to write to HPLIP plugin status file %s: %s",
-	       buf1, strerror(errno));
-      free(filebuf);
-      fclose(fp);
-      goto out;
-    }
-
-    fclose(fp);
-  }
-  else
-    free(version);
+  free(version);
 
 #else
 
@@ -1092,15 +1128,526 @@ hplip_install_plugin(pappl_system_t *system, const char *plugin_dir)
 }
 
 
+#ifdef SNAP
+//
+// 'hplip_remove_plugin() - Uninstall the installed plugin (in the
+//                          Snap only), by removing its directory and
+//                          unregistering its presence in the plugin
+//                          state file.
+//
+
+int
+hplip_remove_plugin(pappl_system_t *system, const char *plugin_dir)
+{
+  int ret = 0;
+  char buf[1024];
+  char *filebuf = NULL;
+  int size_needed;
+  FILE *fp;
+
+
+  // Remove the plugin directory
+  papplLog(system, PAPPL_LOGLEVEL_DEBUG,
+	   "Removing plugin directory %s/plugin",
+	   plugin_dir);
+  if (hplip_remove_uncompress_dir(system, "plugin") == 0)
+  {
+    papplLog(system, PAPPL_LOGLEVEL_ERROR,
+	     "Unable to remove plugin directory %s/plugin", plugin_dir);
+    goto out;
+  }
+
+  // Register removal of plugin in hplip.state
+  if (!hplip_register_plugin(system, "0", NULL, NULL))
+  {
+    papplLog(system, PAPPL_LOGLEVEL_ERROR,
+	     "Unable to register HPLIP plugin installation status.");
+    goto out;
+  }
+
+  // Done
+  papplLog(system, PAPPL_LOGLEVEL_DEBUG,
+	   "Uninstalled the plugin successfully.");
+  ret = 1;
+
+ out:
+
+  return (ret);
+}
+#endif // SNAP
+
+
+//
+// 'hplip_web_plugin()' - Web interface page for installing, updating,
+//                        and removing HP's proprietary plugin.
+//
+
+void
+hplip_web_plugin(
+    pappl_client_t *client,		// I - Client
+    void *data)                         // I - Global data
+{
+  pr_printer_app_global_data_t *global_data =
+    (pr_printer_app_global_data_t *)data;
+  pappl_system_t      *system = global_data->system; // System
+  const char          *status = NULL;	// Status text, if any
+  const char          *uri = NULL;      // Client URI
+  pappl_version_t     version;
+  hplip_plugin_status_t plugin_status;
+  char                *plugin_dir = NULL;
+  char                buf[2048];
+  char                *licensetext = NULL;
+  FILE                *fp;
+  size_t              size_needed;
+
+
+  if (!papplClientHTMLAuthorize(client))
+    return;
+
+  // Get status of installed plugin
+  plugin_status = hplip_plugin_status(system);
+
+  // Handle POSTs to add and delete PPD files...
+  if (papplClientGetMethod(client) == HTTP_STATE_POST)
+  {
+    int			num_form = 0;	// Number of form variables
+    cups_option_t	*form = NULL;	// Form variables
+    const char		*action;	// Form action
+
+    if ((num_form = papplClientGetForm(client, &form)) == 0)
+    {
+      status = "Invalid form data.";
+    }
+    else if (!papplClientIsValidForm(client, num_form, form))
+    {
+      status = "Invalid form submission.";
+    }
+    else if ((action = cupsGetOption("action", num_form, form)) == NULL)
+    {
+      status = "Missing action.";
+    }
+    else if (!strcmp(action, "install-plugin") ||
+	     !strcmp(action, "install-plugin-yes") ||
+	     !strcmp(action, "license-accepted"))
+    {
+      // Set status to trigger the "Are you sure?" page when we
+      // re-install over an already installed and ip-to-date plugin
+      status = "Installing plugin";
+      if (strcmp(action, "license-accepted") &&
+	  (plugin_status != HPLIP_PLUGIN_INSTALLED ||
+	   !strcmp(action, "install-plugin-yes")))
+      {
+	// Download the plugin
+	// Plugin installation only works if we are running as root
+	if (!getuid())
+        {
+	  papplLog(system, PAPPL_LOGLEVEL_DEBUG,
+		   "Downloading the proprietary plugin ...");
+	  if ((plugin_dir = hplip_download_plugin(system)) == NULL)
+	    papplLog(system, PAPPL_LOGLEVEL_ERROR,
+		     "Unable to download plugin ...");
+	  else
+	    papplLog(system, PAPPL_LOGLEVEL_DEBUG,
+		     "Plugin downloaded to %s", plugin_dir);
+	}
+	else
+	  papplLog(system, PAPPL_LOGLEVEL_ERROR,
+		   "Printer Application must run as root to download/install plugin.");
+	if (plugin_dir)
+	  // Succeeded, set status so that if no installation follows now
+	  // we get onto the license page (if plugin_status ==
+	  // HPLIP_PLUGIN_NOT_INSTALLED)
+	  status = "Plugin downloaded.";
+	else
+	  // Failed, get back to plugin status page
+	  status = "Plugin download failed.";
+      }
+      if (plugin_status == HPLIP_PLUGIN_OUTDATED ||
+	  !strcmp(action, "install-plugin-yes") ||
+	  !strcmp(action, "license-accepted"))
+      {
+	// Install the plugin
+	// If failed, get back to plugin status page
+	status = "Plugin installation failed.";
+	// Plugin installation only works if we are running as root
+	if (!getuid())
+        {
+	  papplLog(system, PAPPL_LOGLEVEL_DEBUG,
+		   "Installing the proprietary plugin ...");
+	  if (!plugin_dir)
+	    plugin_dir = hplip_get_uncompress_dir(system, 0);
+	  if (plugin_dir)
+	  {
+	    if (hplip_install_plugin(system, plugin_dir))
+	    {
+	      // Succeeded, update plugin status and get back to plugin
+	      // status page
+	      plugin_status = HPLIP_PLUGIN_INSTALLED;
+	      status = "Plugin installed.";
+	      papplLog(system, PAPPL_LOGLEVEL_DEBUG,
+		       "Plugin installed.");
+	    }
+	    else
+	      papplLog(system, PAPPL_LOGLEVEL_ERROR,
+		       "Plugin installation failed.");
+	  }
+	  else
+	    papplLog(system, PAPPL_LOGLEVEL_ERROR,
+		     "Could not find/the directory with the downloaded plugin.");
+	}
+      }
+    }
+#if SNAP
+    else if (!strcmp(action, "remove-plugin"))
+    {
+      // Only set status to trigger the "Are you sure?" page
+      status = "Removing plugin.";
+    }
+    else if (!strcmp(action, "remove-plugin-yes"))
+    {
+      // Remove the plugin
+      // If failed, get back to plugin status page
+      status = "Plugin removal failed.";
+      // Plugin installation only works if we are running as root
+      if (!getuid())
+      {
+	papplLog(system, PAPPL_LOGLEVEL_DEBUG,
+		 "Removing the proprietary plugin ...");
+	if (!plugin_dir)
+	  plugin_dir = hplip_get_uncompress_dir(system, 0);
+	if (plugin_dir)
+	{
+	  if (hplip_remove_plugin(system, plugin_dir))
+	  {
+	    // Succeeded, update plugin status and get back to plugin
+	    // status page
+	    plugin_status = HPLIP_PLUGIN_NOT_INSTALLED;
+	    status = "Plugin removed.";
+	    papplLog(system, PAPPL_LOGLEVEL_DEBUG,
+		     "Plugin removed.");
+	  }
+	  else
+	    papplLog(system, PAPPL_LOGLEVEL_ERROR,
+		     "Plugin removal failed.");
+	}
+	else
+	  papplLog(system, PAPPL_LOGLEVEL_ERROR,
+		   "Could not find/the directory with the installed plugin.");
+      }
+    }
+#endif
+    else if (!strcmp(action, "license-declined"))
+    {
+      // License declined
+      // Remove downloaded and uncompressed plugin (plugin_tmp)
+      if (!plugin_dir)
+	plugin_dir = hplip_get_uncompress_dir(system, 0);
+      if (plugin_dir)
+      {
+	if (hplip_remove_uncompress_dir(system, "plugin_tmp") == 0)
+	{
+	  papplLog(system, PAPPL_LOGLEVEL_ERROR,
+		   "Unable to remove plugin directory %s/plugin_tmp",
+		   plugin_dir);
+	}
+      }
+      // Set status to get back onto plugin status page
+      status = "License declined, plugin not installed.";
+    }
+    else if (!strcmp(action, "install-cancel"))
+    {
+      // "Are you sure?" on re-intall canceled
+      // Only set status to get back onto plugin status page
+      status = "Plugin not re-installed.";
+    }
+#if SNAP
+    else if (!strcmp(action, "remove-cancel"))
+    {
+      // "Are you sure?" on remove canceled
+      // Only set status to get back onto plugin status page
+      status = "Plugin not removed.";
+    }
+#endif // SNAP
+    else
+      status = "Unknown action.";
+
+    cupsFreeOptions(num_form, form);
+  }
+
+  // Find license file
+  buf[0] = '\0';
+  if (status && strcasestr(status, "downloaded") && plugin_dir)
+    // Load license text from downloaded plugin
+    snprintf(buf, sizeof(buf), "%s/plugin_tmp/license.txt", plugin_dir);
+  else if (plugin_status != HPLIP_PLUGIN_NOT_INSTALLED)
+  {
+    // Load license text from installed plugin
+#if SNAP
+    if (!plugin_dir)
+      plugin_dir = hplip_get_uncompress_dir(system, 0);
+    snprintf(buf, sizeof(buf), "%s/plugin/license.txt", plugin_dir);
+#else
+    char *hplip_home = NULL;
+
+    snprintf(buf, sizeof(buf), "%s/%s", HPLIP_CONF_DIR, "hplip.conf");
+    if ((fp = fopen(buf, "r")) == NULL)
+    {
+      papplLog(system, PAPPL_LOGLEVEL_ERROR,
+	       "Unable to open HPLIP configuration file %s", buf);
+      buf[0] = '\0';
+    }
+    else
+    {
+      hplip_home = get_config_value(fp, "dirs", "home");
+      fclose(fp);
+      if (hplip_home)
+      {
+	snprintf(buf, sizeof(buf), "%s/data/plugins/license.txt", hplip_home);
+	free(hplip_home);
+      }
+      else
+      {
+	papplLog(system, PAPPL_LOGLEVEL_ERROR,
+		 "Unable to locate HPLIP data directory via the config file %s, cannot load license text",
+		 buf);
+	buf[0] = '\0';
+      }
+    }
+#endif // SNAP
+  }
+
+  // Load license text 
+  if (buf[0])
+  {
+    // Open license file
+    papplLog(system, PAPPL_LOGLEVEL_DEBUG,
+	     "Loading license text from %s", buf);
+    if ((fp = fopen(buf, "r")) == NULL)
+    {
+      papplLog(system, PAPPL_LOGLEVEL_ERROR,
+	       "Unable to open plugin license file %s: %s",
+	       buf, strerror(errno));
+    }
+    else
+    {
+      // Load complete file into a buffer
+      fseek(fp, 0L, SEEK_END);
+      size_needed = ftell(fp);
+      licensetext = (char *)calloc(size_needed + 1, sizeof(char));
+      rewind(fp);
+      if (fread(licensetext, 1, size_needed, fp) != size_needed)
+      {
+	papplLog(system, PAPPL_LOGLEVEL_ERROR,
+		 "Unable to read plugin license file %s: %s",
+		 buf, strerror(errno));
+	free(licensetext);
+	licensetext = strdup("Unable to load license file.");
+	papplClientRespondRedirect(client, HTTP_STATUS_FOUND, "/plugin");
+      }
+      fclose(fp);
+    }
+  }
+
+  // Output web interface page
+  if (!papplClientRespond(client, HTTP_STATUS_OK, NULL, "text/html", 0, 0))
+    goto clean_up;
+  papplClientHTMLHeader(client, "Proprietary Plugin for HPLIP", 0);
+  if (papplSystemGetVersions(system, 1, &version) > 0)
+    papplClientHTMLPrintf(client,
+                          "    <div class=\"header2\">\n"
+                          "      <div class=\"row\">\n"
+                          "        <div class=\"col-12 nav\">\n"
+                          "          Version %s\n"
+                          "        </div>\n"
+                          "      </div>\n"
+                          "    </div>\n", version.sversion);
+  papplClientHTMLPuts(client, "    <div class=\"content\">\n");
+
+  papplClientHTMLPrintf(client,
+			"      <div class=\"row\">\n"
+			"        <div class=\"col-12\">\n"
+			"          <h1 class=\"title\">Proprietary Plugin for HPLIP</h1>\n");
+
+  if (status)
+    papplClientHTMLPrintf(client, "          <div class=\"banner\">%s</div>\n", status);
+
+  if (status && strcasestr(status, "downloaded"))
+  {
+    // Show license text and buttons to accept and to reject installation
+    // plugin_dir /plugin_tmp/license.txt
+
+    // Display license text
+    papplClientHTMLPuts(client,
+			"        <p>You are about to install the proprietary plugin from HP. You have to agree with the following license to use it:\n");
+    papplClientHTMLPrintf(client,
+			  "        <div class=\"log\"><pre>%s</pre></div>\n",
+			  licensetext);
+
+    uri = papplClientGetURI(client);
+
+    papplClientHTMLStartForm(client, uri, false);
+    papplClientHTMLPuts(client,
+			"          <table class=\"form\">\n"
+			"            <tbody>\n");
+
+    papplClientHTMLPuts(client, "          <tr><td><button type=\"submit\" name=\"action\" value=\"license-accepted\">Agree</button>");
+    papplClientHTMLPuts(client, "&nbsp;<button type=\"submit\" name=\"action\" value=\"license-declined\">Decline</button>");
+    papplClientHTMLPuts(client,
+			"</td></tr>\n"
+			"            </tbody>\n"
+			"          </table>\n"
+			"        </form>\n");
+  }
+  else if (status && strcasestr(status, "installing"))
+  {
+    // Ask the user whether he is sure to re-install the plugin
+    papplClientHTMLPuts(client,
+			"        <p>You are about to re-install the already installed plugin from HP. This is only needed if you are facing problems with the plugin.</p>\n");
+    papplClientHTMLPuts(client,
+			"        <p>Are you sure?</p>\n");
+
+    uri = papplClientGetURI(client);
+
+    papplClientHTMLStartForm(client, uri, false);
+    papplClientHTMLPuts(client,
+			"          <table class=\"form\">\n"
+			"            <tbody>\n");
+
+    papplClientHTMLPuts(client, "          <tr><td><button type=\"submit\" name=\"action\" value=\"install-plugin-yes\">Re-Install Plugin</button>");
+    papplClientHTMLPuts(client, "&nbsp;<button type=\"submit\" name=\"action\" value=\"install-cancel\">Cancel</button>");
+    papplClientHTMLPuts(client,
+			"</td></tr>\n"
+			"            </tbody>\n"
+			"          </table>\n"
+			"        </form>\n");
+  }
+#if SNAP
+  else if (status && strcasestr(status, "removing"))
+  {
+    // Ask the user whether he is sure to remove the plugin
+    papplClientHTMLPuts(client,
+			"        <p>You are about to remove the installed plugin from HP. This is only needed if you are facing problems with the plugin, and if you have devices which need the plugin, they will stop working.</p>\n");
+    papplClientHTMLPuts(client,
+			"        <p>Are you sure?</p>\n");
+
+    uri = papplClientGetURI(client);
+
+    papplClientHTMLStartForm(client, uri, false);
+    papplClientHTMLPuts(client,
+			"          <table class=\"form\">\n"
+			"            <tbody>\n");
+
+    papplClientHTMLPuts(client, "          <tr><td><button type=\"submit\" name=\"action\" value=\"remove-plugin-yes\">Remove Plugin</button>");
+    papplClientHTMLPuts(client, "&nbsp;<button type=\"submit\" name=\"action\" value=\"remove-cancel\">Cancel</button>");
+    papplClientHTMLPuts(client,
+			"</td></tr>\n"
+			"            </tbody>\n"
+			"          </table>\n"
+			"        </form>\n");
+  }
+#endif // SNAP
+  else
+  {
+    // Show plugin status and buttons to install, re-install, uninstall plugin
+
+    papplClientHTMLPuts(client,
+			"        <p>Some devices cannot be supported by HP's free-(open-source) software driver suite <a href=\"https://developers.hp.com/hp-linux-imaging-and-printing\">HPLIP</a> (HP Linux Imaging and Printing) but need driver extensions or firmware files which are proprietary software (binary-only, no source code published) which cannot be distributed in this Printer Application or in Linux distributions. Therefore all these pieces of proprietary software are packaged together by HP to form a single plugin package ");
+    if (getuid())
+      papplClientHTMLPuts(client,
+			  "which can be installed with HPLIP.</p>\n");
+    else
+      papplClientHTMLPuts(client,
+			  "which can be installed here.</p>\n");
+    papplClientHTMLPuts(client,
+		      "        <p>In most cases, for ~95% of the supported printers you do not need to install it. Only if the printer model you have selected on the \"Add Printer\" page is marked with \"requires proprietary plugin\" or you find this remark in the print queue entry once you have set up your printer, you need to install this plugin.</p>\n");
+#if SNAP
+    papplClientHTMLPuts(client,
+			"        <p>With each new release of HPLIP by HP also a new version of the plugin is issued. You do not need to do any manual updates, this Snap gets auto-updated and if the update contains a new version of HPLIP, also the plugin (if it is installed) gets updated.</p>\n");
+#else
+    papplClientHTMLPuts(client,
+			"        <p>With each new release of HPLIP by HP also a new version of the plugin is issued. You do not need to do any manual updates, this Printer Application automatically updates the plugin (if it is installed) when a new version of HPLIP gets installed on the system.</p>\n");
+#endif // SNAP
+    papplClientHTMLPuts(client,
+			"        <h3>Plugin installation status</h3>\n");
+    papplClientHTMLPrintf(client,
+			  "        <p><blockquote><b style=\"font-size:200%%;\">%s</b></blockquote></p>\n",
+			  plugin_status == HPLIP_PLUGIN_NOT_INSTALLED ?
+			  "Plugin NOT installed" :
+			  (plugin_status == HPLIP_PLUGIN_INSTALLED ?
+			   "Plugin installed and up-to-date" :
+			   (plugin_status == HPLIP_PLUGIN_OUTDATED ?
+			    "Plugin out-of-date" :
+			    "Plugin status unknown")));
+
+    if (getuid())
+    {
+      if (plugin_status != HPLIP_PLUGIN_INSTALLED)
+	papplClientHTMLPuts(client,
+			    "        <p>To install or update the proprietary plugin please use the \"<font face=\"Courier\">hp-plugin</font>\" utility of HPLIP.</p>\n");
+    }
+    else
+    {
+      uri = papplClientGetURI(client);
+
+      papplClientHTMLStartForm(client, uri, false);
+      papplClientHTMLPuts(client,
+			  "          <table class=\"form\">\n"
+			  "            <tbody>\n");
+
+      papplClientHTMLPrintf(client, "          <tr><td><button type=\"submit\" name=\"action\" value=\"install-plugin\">%s</button>",
+			    plugin_status == HPLIP_PLUGIN_NOT_INSTALLED ?
+			    "Install Plugin" :
+			    (plugin_status == HPLIP_PLUGIN_INSTALLED ?
+			     "Re-install Plugin" :
+			     (plugin_status == HPLIP_PLUGIN_OUTDATED ?
+			      "Update Plugin" :
+			      "Install/Update Plugin")));
+#if SNAP
+      if (plugin_status != HPLIP_PLUGIN_NOT_INSTALLED)
+	papplClientHTMLPuts(client, "&nbsp;<button type=\"submit\" name=\"action\" value=\"remove-plugin\">Remove Plugin</button>");
+#endif // SNAP
+      papplClientHTMLPuts(client,
+			  "</td></tr>\n"
+			  "            </tbody>\n"
+			  "          </table>\n"
+			  "        </form>\n");
+    }
+
+    if (plugin_status != HPLIP_PLUGIN_NOT_INSTALLED && licensetext)
+    {
+      papplClientHTMLPuts(client,
+			  "        <h3>License</h3>\n");
+      papplClientHTMLPuts(client,
+			  "        <p>The proprietary plugin of HPLIP is released under the following user license:</p>\n");
+      papplClientHTMLPrintf(client,
+			    "        <div class=\"log\"><pre>%s</pre></div>\n",
+			    licensetext);
+    }
+  }
+
+  papplClientHTMLPuts(client,
+                      "      </div>\n"
+                      "    </div>\n");
+  papplClientHTMLFooter(client);
+
+ clean_up:
+  // Clean up
+  if (plugin_dir)
+    free(plugin_dir);
+  if (licensetext)
+    free(licensetext);
+}
+
+
 //
 // 'hplip_plugin_support()' - Callback function for the system
 //                            setup. It updates an already installed
 //                            plugin, if HPLIP got update to a new
 //                            upstream version, it adds a button to
-//                            the system part of the main of the web
-//                            interface, to open the page to initially
-//                            install the plugin, and it adds this
-//                            page to the web interface.
+//                            the system part of the main page of the
+//                            web interface, to open the page to
+//                            initially install the plugin, and it
+//                            adds this page to the web interface.
 //
 
 void
@@ -1113,8 +1660,9 @@ hplip_plugin_support(void *data)
   char             *plugin_dir;
 
 
-  // Check if we need to update the plugin
+  // Get status of installed plugin
   plugin_status = hplip_plugin_status(system);
+
   if (plugin_status == HPLIP_PLUGIN_NOT_INSTALLED)
     papplLog(system, PAPPL_LOGLEVEL_DEBUG,
 	     "Proprietary plugin is not installed.");
@@ -1123,27 +1671,78 @@ hplip_plugin_support(void *data)
 	     "Proprietary plugin is installed and up-to-date.");
   else if (plugin_status == HPLIP_PLUGIN_OUTDATED)
   {
-    papplLog(system, PAPPL_LOGLEVEL_DEBUG,
-	     "Updating an already installed proprietary plugin ...");
-    if ((plugin_dir = hplip_download_plugin(system)) == NULL)
-    {
-      papplLog(system, PAPPL_LOGLEVEL_ERROR,
-	       "Unable to download plugin ...");
-    }
-    else
+    // We need to update the plugin
+
+    // Plugin installation only works if we are running as root
+    if (!getuid())
     {
       papplLog(system, PAPPL_LOGLEVEL_DEBUG,
-	       "Plugin downloaded to %s", plugin_dir);
-
-      if (hplip_install_plugin(system, plugin_dir))
-	papplLog(system, PAPPL_LOGLEVEL_DEBUG,
-		 "Plugin installed.");
-      else
+	       "Updating an already installed proprietary plugin ...");
+      if ((plugin_dir = hplip_download_plugin(system)) == NULL)
+      {
 	papplLog(system, PAPPL_LOGLEVEL_ERROR,
-		 "Plugin installation failed.");
+		 "Unable to download plugin ...");
+      }
+      else
+      {
+	papplLog(system, PAPPL_LOGLEVEL_DEBUG,
+		 "Plugin downloaded to %s", plugin_dir);
 
-      free(plugin_dir);
+	if (hplip_install_plugin(system, plugin_dir))
+	  papplLog(system, PAPPL_LOGLEVEL_DEBUG,
+		   "Plugin installed.");
+	else
+	  papplLog(system, PAPPL_LOGLEVEL_ERROR,
+		   "Plugin installation failed.");
+
+	free(plugin_dir);
+      }
     }
+  }
+
+  // Add web interface page to manage the plugin
+  papplSystemAddResourceCallback(system, "/plugin", "text/html",
+				 (pappl_resource_cb_t)hplip_web_plugin,
+				 global_data);
+  papplSystemAddLink(system,
+		     getuid() ? "Proprietary Plugin Status" :
+		     "Install Proprietary Plugin",
+		     "/plugin",
+		     PAPPL_LOPTIONS_OTHER | PAPPL_LOPTIONS_HTTPS_REQUIRED);
+}
+
+
+//
+// 'hplip_printer_extra_web_if()' - Add button for plugin web
+//                                  interface page to print queue
+//                                  entries which need the plugin.
+//                                  Also call original function for
+//                                  adding the "Device Settings",
+//                                  page, needed especially for the
+//                                  PostScript printers.
+//
+
+void
+hplip_printer_extra_web_if(pappl_printer_t *printer, // I - Printer
+			   void *data)               // I - Global data
+{
+  pr_printer_app_global_data_t *global_data =
+    (pr_printer_app_global_data_t *)data;
+  pappl_system_t   *system = global_data->system;
+  pappl_pr_driver_data_t driver_data;
+
+
+  // "Device Settings" page for PPDs with "Installable Options" group or
+  // PostScript query code for printer settings
+  pr_setup_device_settings_page(printer, data);
+
+  papplPrinterGetDriverData(printer, &driver_data);
+  if (strcasestr(driver_data.make_and_model, "proprietary plugin"))
+  {
+    // Printer needs the plugin, add a "Plugin" button to get to the
+    // plugin management web interface page to the printer's entry
+    papplPrinterAddLink(printer, "Plugin", "/plugin",
+			PAPPL_LOPTIONS_NAVIGATION | PAPPL_LOPTIONS_STATUS);
   }
 }
 
@@ -1197,7 +1796,9 @@ main(int  argc,				// I - Number of command-line arguments
     // pappl-retrofit special features to be used
     PR_COPTIONS_QUERY_PS_DEFAULTS |
     PR_COPTIONS_NO_GENERIC_DRIVER |
-    //PR_COPTIONS_USE_ONLY_MATCHING_NICKNAMES |
+#if !SNAP
+    PR_COPTIONS_USE_ONLY_MATCHING_NICKNAMES |
+#endif // !SNAP
     PR_COPTIONS_NO_PAPPL_BACKENDS |
     PR_COPTIONS_CUPS_BACKENDS,
     pr_autoadd,               // Auto-add (driver assignment) callback
@@ -1207,8 +1808,10 @@ main(int  argc,				// I - Number of command-line arguments
     hplip_plugin_support,     // Update installed plugin during system setup
                               // and add web interface button and page for
                               // plugin download
-    pr_setup_device_settings_page, // Set up "Device Settings" printer web
-                              // interface page
+    hplip_printer_extra_web_if, // Set up "Device Settings" printer web
+                              // interface page and also add a link to
+                              // the plugin web interface page to entries
+                              // of printers which need the plugin.
     spooling_conversions,     // Array of data format conversion rules for
                               // printing in spooling mode
     stream_formats,           // Arrray for stream formats to be generated
