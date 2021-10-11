@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e -x
+#set -e -x
 
 # Create directories and define environment variables
 mkdir -p $SNAP_COMMON/usb
