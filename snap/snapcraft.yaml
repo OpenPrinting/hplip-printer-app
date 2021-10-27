@@ -5,8 +5,8 @@ summary: HPLIP Printer Application
 description: |
   The HPLIP Printer Application is a PAPPL (Printer Application
   Framework) based Printer Application to support printers using the
-  printer driver of HPLIP. Support for scanning and for the
-  proprietary plugin will be added later.
+  printer driver of HPLIP. Loading the proprietary plugin from HP is
+  supported, support for scanning will be added later.
 
 grade: stable
 confinement: strict
@@ -91,8 +91,10 @@ parts:
       - libusb-1.0-0
     prime:
       - -etc/fonts
-      - lib
       - -var
+      - lib/*/lib*.so*
+      - usr/lib/lib*.so*
+      - usr/lib/*/lib*.so*
       - -usr/include
       - -usr/lib/pkgconfig
       - -usr/share/fonts
@@ -101,7 +103,6 @@ parts:
       - -usr/share/doc-base
       - -usr/share/lintian
       - -snap
-      - usr/lib/libpappl.so.1
     after: [patches, cups]
 
   pappl-retrofit:
@@ -121,7 +122,12 @@ parts:
       - autotools-dev
       - pkg-config
       - perl-base
+    stage-packages:
+      - libusb-1.0-0
     prime:
+      - lib/*/lib*.so*
+      - usr/lib/lib*.so*
+      - usr/lib/*/lib*.so*
       - -var
       - -usr/bin/test-printer-app
       - -usr/include
@@ -142,6 +148,9 @@ parts:
     stage-packages:
       - libjpeg-turbo8
     prime:
+      - lib/*/lib*.so*
+      - usr/lib/lib*.so*
+      - usr/lib/*/lib*.so*
       - -etc/fonts
       - -var
       - -usr/include
@@ -175,6 +184,10 @@ parts:
       - libfreetype6
       - libpng16-16
     prime:
+      - usr/bin/gs
+      - lib/*/lib*.so*
+      - usr/lib/*/lib*.so*
+      - usr/share/ghostscript
       - -etc/fonts
       - -var
       - -usr/include
@@ -193,8 +206,7 @@ parts:
     source: https://github.com/OpenPrinting/cups
     source-type: git
     plugin: autotools
-    # We only need libcups (with headers, ...), ppdc plus *.defs files (for
-    # HPLIP build to updated hpcups PPD files), and the backends
+    # We only need libcups (with headers, ...) and the backends
     override-build: |
       set -eux
       ./configure --sysconfdir=/var/snap/hplip-printer-app/common/
@@ -209,22 +221,18 @@ parts:
       cd ppdc
       make ppdc
       cd ..
-      mkdir -p $SNAPCRAFT_STAGE/usr/lib
-      cp cups/libcups*.a $SNAPCRAFT_STAGE/usr/lib/
-      cp cups/libcups*.so* $SNAPCRAFT_STAGE/usr/lib/
-      mkdir -p $SNAPCRAFT_STAGE/usr/include/cups
-      cp cups/*.h $SNAPCRAFT_STAGE/usr/include/cups/
-      mkdir -p $SNAPCRAFT_STAGE/usr/bin
-      cp cups-config $SNAPCRAFT_STAGE/usr/bin/
-      mkdir -p $SNAPCRAFT_STAGE/usr/lib/hplip-printer-app/backend/
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/lib
+      cp cups/libcups*.a $SNAPCRAFT_PART_INSTALL/usr/lib/
+      cp cups/libcups*.so* $SNAPCRAFT_PART_INSTALL/usr/lib/
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/include/cups
+      cp cups/*.h $SNAPCRAFT_PART_INSTALL/usr/include/cups/
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/bin
+      cp cups-config $SNAPCRAFT_PART_INSTALL/usr/bin/
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/lib/hplip-printer-app/backend/
       ( cd backend; \
-        cp snmp dnssd socket ipp ipps lpd usb org.cups.usb-quirks $SNAPCRAFT_STAGE/usr/lib/hplip-printer-app/backend/ \
+        cp snmp dnssd socket ipp ipps lpd usb org.cups.usb-quirks $SNAPCRAFT_PART_INSTALL/usr/lib/hplip-printer-app/backend/ \
       )
-      cp conf/snmp.conf $SNAPCRAFT_STAGE/usr/lib/hplip-printer-app/backend/
-      cp ppdc/ppdc $SNAPCRAFT_STAGE/usr/bin/
-      mkdir -p $SNAPCRAFT_STAGE/usr/share/cups/ppdc/
-      cp data/*.defs $SNAPCRAFT_STAGE/usr/share/cups/ppdc/
-      #snapcraftctl build
+      cp conf/snmp.conf $SNAPCRAFT_PART_INSTALL/usr/lib/hplip-printer-app/backend/
     build-packages:
       - patch
       - gettext
@@ -246,8 +254,10 @@ parts:
       - libpam0g-dev
       - libpaper-dev
       - libpng-dev
+      - libusb-1.0-0-dev
       - perl-base
     stage-packages:
+      - libusb-1.0-0
       - libavahi-common3
       - libavahi-client3
       - libicu66
@@ -265,24 +275,17 @@ parts:
       - -usr/share/doc
       - -usr/share/doc-base
       - -usr/share/lintian
-      - usr/lib
-      - usr/lib/libcups.so.2
-      - usr/lib/libcupsimage.so.2
-      - usr/lib/hplip-printer-app/backend/snmp
-      - usr/lib/hplip-printer-app/backend/dnssd
-      - usr/lib/hplip-printer-app/backend/socket
-      - usr/lib/hplip-printer-app/backend/ipp
-      - usr/lib/hplip-printer-app/backend/ipps
-      - usr/lib/hplip-printer-app/backend/lpd
-      - usr/lib/hplip-printer-app/backend/usb
-      - usr/lib/hplip-printer-app/backend/org.cups.usb-quirks
-      - usr/lib/hplip-printer-app/backend/snmp.conf
+      - lib/*/lib*.so*
+      - usr/lib/lib*.so*
+      - usr/lib/*/lib*.so*
+      - usr/lib/hplip-printer-app/backend/*
 
   cups-filters:
     source: https://github.com/OpenPrinting/cups-filters
     source-type: git
     plugin: autotools
-    # We only need the 3 libraries: libcupsfilters, libppd, and libfontembed
+    # We need the 3 libraries: libcupsfilters, libppd, and libfontembed, and
+    # ppdc plus *.defs files (for HPLIP build to updated hpcups PPD files)
     override-build: |
       set -eux
       ./autogen.sh
@@ -290,17 +293,22 @@ parts:
       make libppd.la
       make libcupsfilters.la
       make libfontembed.la
-      mkdir -p $SNAPCRAFT_STAGE/usr/lib
-      cp .libs/lib* $SNAPCRAFT_STAGE/usr/lib/
-      mkdir -p $SNAPCRAFT_STAGE/usr/include/ppd
-      cp ppd/*.h $SNAPCRAFT_STAGE/usr/include/ppd/
-      mkdir -p $SNAPCRAFT_STAGE/usr/include/cupsfilters
-      cp cupsfilters/*.h $SNAPCRAFT_STAGE/usr/include/cupsfilters/
-      mkdir -p $SNAPCRAFT_STAGE/usr/include/fontembed
-      cp fontembed/*.h $SNAPCRAFT_STAGE/usr/include/fontembed/
-      mkdir -p $SNAPCRAFT_STAGE/usr/lib/pkgconfig
-      cp *.pc $SNAPCRAFT_STAGE/usr/lib/pkgconfig/
-      #snapcraftctl build
+      make ppdc
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/lib
+      cp .libs/lib* $SNAPCRAFT_PART_INSTALL/usr/lib/
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/include/ppd
+      cp ppd/*.h $SNAPCRAFT_PART_INSTALL/usr/include/ppd/
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/include/cupsfilters
+      cp cupsfilters/*.h $SNAPCRAFT_PART_INSTALL/usr/include/cupsfilters/
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/include/fontembed
+      cp fontembed/*.h $SNAPCRAFT_PART_INSTALL/usr/include/fontembed/
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/lib/pkgconfig
+      cp *.pc $SNAPCRAFT_PART_INSTALL/usr/lib/pkgconfig/
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/bin
+      cp .libs/ppdc $SNAPCRAFT_PART_INSTALL/usr/bin/
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/share/ppdc
+      cp ppd/*.defs ppd/epson.h ppd/hp.h ppd/label.h $SNAPCRAFT_PART_INSTALL/usr/share/ppdc/
+      cp filter/escp.h filter/pcl.h $SNAPCRAFT_PART_INSTALL/usr/share/ppdc/
     build-packages:
       - gettext
       - autoconf
@@ -334,6 +342,7 @@ parts:
     prime:
       - -etc/fonts
       - -var
+      - -usr/bin/ppdc
       - -usr/include
       - -usr/lib/pkgconfig
       - -usr/share/fonts
@@ -341,15 +350,19 @@ parts:
       - -usr/share/doc
       - -usr/share/doc-base
       - -usr/share/lintian
-      - usr/lib
-      - usr/lib/libcupsfilters.so.1
-      - -usr/lib/libcupsfilters.so.1.0.0
-      - usr/lib/libppd.so.1
-      - -usr/lib/libppd.so.1.0.0
-      - usr/lib/libfontembed.so.1
-      - -usr/lib/libfontembed.so.1.0.0
+      - lib/*/lib*.so*
+      - usr/lib/lib*.so*
+      - usr/lib/*/lib*.so*
+      - usr/lib/*/nss
       - usr/bin/pdftops
+      - usr/share/ppdc/*
     after: [cups, qpdf, ghostscript]
+
+  pyppd:
+    source: https://github.com/OpenPrinting/pyppd
+    source-type: git
+    plugin: python
+    override-prime: ""
 
   hplip:
     # We use the Debian package source instead of the upstream source code
@@ -370,6 +383,7 @@ parts:
       - PYTHON: python3
       - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$LD_LIBRARY_PATH
       - CUPS_DATADIR: $SNAPCRAFT_STAGE/usr/share/cups
+      - PPDC_DATADIR: $SNAPCRAFT_STAGE/usr/share/ppdc
       # Disable ImageProcesssor (for Debian source)
       - IMAGEPROC: disable
       # ImageProcessor oly on amd64 (for upstream source)
@@ -466,9 +480,9 @@ parts:
       # snapcraftctl build
       # Do the "make; make install" (for Debian source)
       make
-      make DESTDIR=`pwd`/../install install
+      make DESTDIR=$SNAPCRAFT_PART_INSTALL install
       # Correct hard-coded paths in hplip.conf
-      ( cd ../install/snap/hplip-printer-app/current/etc/hp; \
+      ( cd $SNAPCRAFT_PART_INSTALL/snap/hplip-printer-app/current/etc/hp; \
         perl -p -i -e 's:/var/:/var/snap/hplip-printer-app/common/var/:' hplip.conf; \
         perl -p -i -e 's:/usr/share/:/snap/hplip-printer-app/current/usr/share/:' hplip.conf; \
         perl -p -i -e 's:/usr/share/ppd/hplip:/usr/share/ppd:' hplip.conf; \
@@ -477,7 +491,7 @@ parts:
       )
       # Correct hard-coded /var and /etc paths in the utilities written in
       # Python
-      ( cd ../install/usr/share/hplip/
+      ( cd $SNAPCRAFT_PART_INSTALL/usr/share/hplip/
         perl -p -i -e 's:/var/(\S+)/hp:/var/snap/hplip-printer-app/common/var/\1/hp:' *.py */*.py */*/*.py
         perl -p -i -e 's:/var/lib/hp:/var:' *.py */*.py */*/*.py
         perl -p -i -e 's:/etc/hp:/snap/hplip-printer-app/current/etc/hp:' *.py */*.py */*/*.py
@@ -487,42 +501,42 @@ parts:
         patch -p0 < $SNAPCRAFT_STAGE/patches/hplip-plugin-firmware-load-path.patch
       )
       # Correct Python shebang in the utilities
-      ( cd ../install; \
+      ( cd $SNAPCRAFT_PART_INSTALL; \
         for file in usr/bin/hp-*; do \
           perl -p -i -e 's:^\s*\#\!\s*/usr/bin/env\s+python.*:#!/snap/hplip-printer-app/current/usr/bin/python3:' `readlink -f $file`; \
         done; \
       )
       # "make install" install Python extension modules to the wrong place
       # (for Debian source)
-      rm ../install/usr/lib/python*/site-packages/*.la
-      mkdir -p ../install/usr/lib/python3/dist-packages
-      mv ../install/usr/lib/python*/site-packages/*.so ../install/usr/lib/python3/dist-packages
+      rm $SNAPCRAFT_PART_INSTALL/usr/lib/python*/site-packages/*.la
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages
+      mv $SNAPCRAFT_PART_INSTALL/usr/lib/python*/site-packages/*.so $SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages
       # "make install" misses to install the PostScript PPD files, do it now
       # (for Debian source)
-      cp prnt/ps/*.ppd.gz ../install/usr/share/ppd/hplip/HP/
+      cp prnt/ps/*.ppd.gz $SNAPCRAFT_PART_INSTALL/usr/share/ppd/hplip/HP/
       # Handle the PPD files: Unzip, remove "(recommended)" (we have only
       # HPLIP here, no other driver), compress into self-extracting archive
-      ( cd ../install/usr/share/ppd/hplip/HP/; \
+      ( cd $SNAPCRAFT_PART_INSTALL/usr/share/ppd/hplip/HP/; \
         find . -name '*.gz' | xargs gunzip -f; \
         for file in `find . -name '*.ppd'`; do \
           perl -p -i -e 's/(\*NickName:.*\S+)\s*\(recommended\)/\1/' $file; \
         done; \
-        pyppd -v -o hplip-ppds .; \
+        $SNAPCRAFT_STAGE/bin/pyppd -v -o hplip-ppds .; \
         mv hplip-ppds ../..; \
         cd ../..; \
         rm -rf hplip; \
       )
       # Link Python 3 to the "python" executable name (no older Python in this
       # Snap and everything needs Python 3)
-      ln -sf python3 ../install/usr/bin/python
+      ln -sf python3 $SNAPCRAFT_PART_INSTALL/usr/bin/python
       # Install the binary-only libImageProcessor only if we build the Snap for
       # amd64 (x86_64) (for upstream source)
       #if echo $SNAPCRAFT_ARCH_TRIPLET | grep -q x86_64; then
-      #  cp prnt/hpcups/libImageProcessor-x86_64.so ../install/usr/lib/libImageProcessor.so
+      #  cp prnt/hpcups/libImageProcessor-x86_64.so $SNAPCRAFT_PART_INSTALL/usr/lib/libImageProcessor.so
       #fi
       # Install the public key for verifying the signature of the proprietary
       # plugin (for Debian source)
-      cp debian/upstream/signing-key.asc ../install/usr/share/hplip/
+      cp debian/upstream/signing-key.asc $SNAPCRAFT_PART_INSTALL/usr/share/hplip/
     build-packages:
       - ubuntu-dev-tools
       - dpkg-dev
@@ -544,7 +558,6 @@ parts:
       - perl-base
       - python3
       - xz-utils
-      - pyppd
     stage-packages:
       - python3
       - python3-minimal
@@ -558,7 +571,6 @@ parts:
       - python3-reportlab
       - libpython3.8
       - libpython3.8-stdlib
-      - pyppd
       - wget
       - xz-utils
       - avahi-utils
@@ -569,19 +581,15 @@ parts:
       usr/lib/cups/filter/hpps: usr/lib/hplip-printer-app/filter/hpps
       usr/lib/cups/backend/hp: usr/lib/hplip-printer-app/backend/hp
       snap/hplip-printer-app/current/etc: etc
-    stage:
-      - etc
-      - usr/bin
-      - usr/lib
-      - usr/share/hplip
-      - usr/share/ppd
-      - usr/share/snmp
-      - usr/lib/hplip-printer-app
     prime:
-      - etc
+      - etc/hp
       - -var
       - usr/bin
-      - usr/lib
+      - -usr/bin/pdb*
+      - -usr/bin/py*versions
+      - lib/*/lib*.so*
+      - usr/lib/lib*.so*
+      - usr/lib/*/lib*.so*
       - -usr/include
       - -usr/lib/pkgconfig
       - -usr/share/fonts
@@ -594,7 +602,7 @@ parts:
       - usr/share/snmp
       - usr/lib/hplip-printer-app
       - -usr/lib/cups
-    after: [cups, patches]
+    after: [cups, patches, pyppd]
 
   hplip-printer-app:
     plugin: make
@@ -648,35 +656,19 @@ parts:
       - gpg
       - gpg-agent
     stage:
-      - lib
-      - -var
-      - usr/bin/hplip-printer-app
-      - usr/bin/gpg*
-      - -usr/include
-      - usr/lib
-      - -usr/lib/pkgconfig
-      - -usr/share/fonts
-      - -usr/share/man
-      - -usr/share/doc
-      - -usr/share/doc-base
-      - -usr/share/lintian
-      - usr/share/hplip-printer-app
       - -usr/lib/hplip-printer-app
     prime:
-      - lib
-      - -var
       - usr/bin/hplip-printer-app
-      - usr/bin/gpg*
-      - -usr/include
-      - usr/lib
-      - -usr/lib/pkgconfig
-      - -usr/share/fonts
-      - -usr/share/man
-      - -usr/share/doc
-      - -usr/share/doc-base
-      - -usr/share/lintian
+      - lib/*/lib*.so*
+      - usr/lib/*/lib*.so*
       - usr/share/hplip-printer-app
-      - -usr/lib/hplip-printer-app
+      - usr/bin/gpg*
+      - usr/lib/gnupg*
+      - usr/lib/sasl*
+      - usr/lib/python*
+      - -var
+      - -usr/var
+      - -usr/share/man
     after: [pappl-retrofit, pappl, cups, cups-filters, hplip]
 
   mdns-lookup:
