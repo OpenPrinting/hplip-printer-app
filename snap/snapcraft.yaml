@@ -521,7 +521,7 @@ parts:
         for file in `find . -name '*.ppd'`; do \
           perl -p -i -e 's/(\*NickName:.*\S+)\s*\(recommended\)/\1/' $file; \
         done; \
-        $SNAPCRAFT_STAGE/bin/pyppd -v -o hplip-ppds .; \
+        PYTHONPATH=$SNAPCRAFT_STAGE/lib/python3.8/site-packages $SNAPCRAFT_STAGE/bin/pyppd -v -o hplip-ppds .; \
         mv hplip-ppds ../..; \
         cd ../..; \
         rm -rf hplip; \
