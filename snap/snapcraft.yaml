@@ -209,6 +209,7 @@ parts:
     # We only need libcups (with headers, ...) and the backends
     override-build: |
       set -eux
+      patch -p1 < $SNAPCRAFT_STAGE/patches/cups-dnssd-backend-socket-only.patch
       ./configure --sysconfdir=/var/snap/hplip-printer-app/common/
       cd cups
       make
@@ -279,6 +280,7 @@ parts:
       - usr/lib/lib*.so*
       - usr/lib/*/lib*.so*
       - usr/lib/hplip-printer-app/backend/*
+    after: [patches]
 
   cups-filters:
     source: https://github.com/OpenPrinting/cups-filters

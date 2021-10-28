@@ -1,0 +1,36 @@
+diff --git a/backend/dnssd.c b/backend/dnssd.c
+index e57029178..77c7724b3 100644
+--- a/backend/dnssd.c
++++ b/backend/dnssd.c
+@@ -297,8 +297,8 @@ main(int  argc,				/* I - Number of command-line args */
+     return (0);
+   }
+ 
+-  browsers = 6;
+-  avahi_service_browser_new(client, AVAHI_IF_UNSPEC,
++  browsers = /*6*/1;
++  /*avahi_service_browser_new(client, AVAHI_IF_UNSPEC,
+ 			    AVAHI_PROTO_UNSPEC,
+ 			    "_fax-ipp._tcp", NULL, 0,
+ 			    browse_callback, devices);
+@@ -313,17 +313,17 @@ main(int  argc,				/* I - Number of command-line args */
+   avahi_service_browser_new(client, AVAHI_IF_UNSPEC,
+ 			    AVAHI_PROTO_UNSPEC,
+ 			    "_ipps._tcp", NULL, 0,
+-			    browse_callback, devices);
++			    browse_callback, devices);*/
+   avahi_service_browser_new(client, AVAHI_IF_UNSPEC,
+ 			    AVAHI_PROTO_UNSPEC,
+ 			    "_pdl-datastream._tcp",
+ 			    NULL, 0,
+ 			    browse_callback,
+ 			    devices);
+-  avahi_service_browser_new(client, AVAHI_IF_UNSPEC,
++  /*avahi_service_browser_new(client, AVAHI_IF_UNSPEC,
+ 			    AVAHI_PROTO_UNSPEC,
+ 			    "_printer._tcp", NULL, 0,
+-			    browse_callback, devices);
++			    browse_callback, devices);*/
+ #endif /* HAVE_AVAHI */
+ 
+  /*
