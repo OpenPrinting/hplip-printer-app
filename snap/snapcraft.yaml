@@ -592,6 +592,7 @@ parts:
       - lib/*/lib*.so*
       - usr/lib/lib*.so*
       - usr/lib/*/lib*.so*
+      - usr/lib/python*
       - -usr/include
       - -usr/lib/pkgconfig
       - -usr/share/fonts
