@@ -41,7 +41,7 @@
 
 // Test page
 
-#define TESTPAGE "testpage.ps"
+#define TESTPAGE "testpage.pdf"
 
 // System architecture
 
