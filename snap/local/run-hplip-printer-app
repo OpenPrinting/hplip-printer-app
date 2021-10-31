@@ -21,4 +21,4 @@ export SPOOL_DIR=$SNAP_COMMON/spool
 export CUPS_SERVERROOT=$SNAP_COMMON/cups
 export CUPS_SERVERBIN=$SNAP/usr/lib/hplip-printer-app
 
-exec $SNAP/usr/bin/hplip-printer-app $*
+exec $SNAP/usr/bin/hplip-printer-app "$@"
