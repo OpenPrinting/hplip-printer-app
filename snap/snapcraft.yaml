@@ -125,18 +125,18 @@ parts:
     stage-packages:
       - libusb-1.0-0
     organize:
-      usr/share/test-printer-app/testpage.pdf: usr/share/hplip-printer-app/testpage.pdf
+      usr/share/legacy-printer-app/testpage.pdf: usr/share/hplip-printer-app/testpage.pdf
     prime:
       - lib/*/lib*.so*
       - usr/lib/lib*.so*
       - usr/lib/*/lib*.so*
       - usr/share/hplip-printer-app/testpage.pdf
       - -var
-      - -usr/bin/test-printer-app
+      - -usr/bin/legacy-printer-app
       - -usr/include
       - -usr/lib/pkgconfig
-      - -usr/lib/test-printer-app
-      - -usr/share/test-printer-app
+      - -usr/lib/legacy-printer-app
+      - -usr/share/legacy-printer-app
       - -usr/share/fonts
       - -usr/share/man
       - -usr/share/doc
