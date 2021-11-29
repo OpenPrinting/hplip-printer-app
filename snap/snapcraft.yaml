@@ -24,6 +24,11 @@ apps:
   hplip-printer-app-server:
     command: scripts/run-hplip-printer-app-server
     daemon: simple
+    # Use a systemd timeout longer than 1 min as PAPPL has a 1-minute
+    # shutdown timeout if there are pending jobs for which the printer
+    # is not responding. This way we avoid the Printer Application
+    # getting killed and shut down uncleanly.
+    stop-timeout: 70s
     plugs: [avahi-control, home, network, network-bind, raw-usb, hardware-observe]
   hplip-printer-app:
     command: scripts/run-hplip-printer-app
