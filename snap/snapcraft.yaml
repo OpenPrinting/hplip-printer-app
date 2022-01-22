@@ -65,6 +65,8 @@ parts:
       # Patching Makedefs.in to fix this
       perl -p -i -e 's/^(\s*DSOFLAGS\s*=\s*\S*\s+)/\1\$\(LDFLAGS\) /' Makedefs.in
       snapcraftctl build
+      # PAPPL misses to install subscription.h
+      cp pappl/subscription.h $SNAPCRAFT_PART_INSTALL/usr/include/pappl/
     autotools-configure-parameters:
       - --prefix=/usr
       - --with-papplstatedir=/var/snap/hplip-printer-app/common
@@ -380,11 +382,11 @@ parts:
     # Note that the repository has all patches already applied, so we do
     # not need to apply them before building.
     # Debian source
-    source: https://salsa.debian.org/printing-team/hplip.git
+    source: https://salsa.debian.org/printing-team/hplip.v2.git
     source-type: git
-    source-branch: debian/3.21.8+dfsg0-2
+    source-branch: debian/3.21.12+dfsg0-1
     # Upstream source
-    #source: https://sourceforge.net/projects/hplip/files/hplip/3.21.8/hplip-3.21.8.tar.gz
+    #source: https://sourceforge.net/projects/hplip/files/hplip/3.21.12/hplip-3.21.12.tar.gz
     plugin: autotools
     build-environment:
       - PYTHON: python3
