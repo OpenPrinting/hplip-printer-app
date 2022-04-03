@@ -393,9 +393,9 @@ parts:
     # Debian source
     source: https://salsa.debian.org/printing-team/hplip.v2.git
     source-type: git
-    source-branch: debian/3.21.12+dfsg0-1
+    source-branch: debian/3.22.2+dfsg0-1
     # Upstream source
-    #source: https://sourceforge.net/projects/hplip/files/hplip/3.21.12/hplip-3.21.12.tar.gz
+    #source: https://sourceforge.net/projects/hplip/files/hplip/3.22.2/hplip-3.22.2.tar.gz
     plugin: autotools
     build-environment:
       - PYTHON: python3
