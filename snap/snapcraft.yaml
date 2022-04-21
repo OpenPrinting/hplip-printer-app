@@ -45,12 +45,6 @@ parts:
   pappl:
     source: https://github.com/michaelrsweet/pappl
     source-type: git
-    # Lock the PAPPL snapshot to use an earlier commit
-    # ("Redirect to HTTPS when the user clicks on Use My Position.", from
-    #  March 16, 2022), as the top of the GIT is a work-in-progress/save-work
-    # commit, killing off the TLS-certificate buttons without providing
-    # a (SSL) replacement.
-    source-commit: 74962172f0f33702795055b5c63ccce2483c9ed5
     plugin: autotools
     override-build: |
       set -eux
