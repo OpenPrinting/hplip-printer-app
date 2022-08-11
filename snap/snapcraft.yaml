@@ -301,9 +301,15 @@ parts:
     override-build: |
       set -eux
       ./autogen.sh
-      ./configure --disable-avahi --disable-ldap --disable-foomatic --disable-braille --disable-mutool --without-rcdir --with-pdftops-path=/snap/hplip-printer-app/current/usr/bin/pdftops
-      make libppd.la
+      # We have to force-define the macros for the properties of the
+      # external executables here, as the tests do not work in the Snap
+      # build environment
+      CFLAGS="$CFLAGS -DHAVE_GHOSTSCRIPT_PS2WRITE -DHAVE_POPPLER_PDFTOPS_WITH_ORIGPAGESIZES -DHAVE_POPPLER_PDFTOPS_WITH_RESOLUTION" ./configure --disable-avahi --disable-ldap --disable-foomatic --disable-braille --enable-ghostscript --enable-gs-ps2write --disable-mutool --without-rcdir --with-pdftops-path=/snap/hplip-printer-app/current/usr/bin/pdftops
+      #perl -p -i -e 's:undef HAVE_GHOSTSCRIPT_PS2WRITE:define HAVE_GHOSTSCRIPT_PS2WRITE:' config.h
+      #perl -p -i -e 's:undef HAVE_POPPLER_PDFTOPS_WITH_ORIGPAGESIZES:define HAVE_POPPLER_PDFTOPS_WITH_ORIGPAGESIZES:' config.h
+      #perl -p -i -e 's:undef HAVE_POPPLER_PDFTOPS_WITH_RESOLUTION:define HAVE_POPPLER_PDFTOPS_WITH_RESOLUTION:' config.h
       make libcupsfilters.la
+      make libppd.la
       make libfontembed.la
       make ppdc
       mkdir -p $SNAPCRAFT_PART_INSTALL/usr/lib
