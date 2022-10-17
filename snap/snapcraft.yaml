@@ -48,7 +48,6 @@ parts:
     plugin: autotools
     override-build: |
       set -eux
-      patch -p1 < $SNAPCRAFT_STAGE/patches/pappl-support-text-string-vendor-options.patch
       # Raise the supported number of vendor-specific options/attributes in
       # PAPPL to 256, as the original 32 can be too small for some busy PPD
       # files
@@ -65,8 +64,6 @@ parts:
       # Patching Makedefs.in to fix this
       perl -p -i -e 's/^(\s*DSOFLAGS\s*=\s*\S*\s+)/\1\$\(LDFLAGS\) /' Makedefs.in
       snapcraftctl build
-      # PAPPL misses to install subscription.h
-      cp pappl/subscription.h $SNAPCRAFT_PART_INSTALL/usr/include/pappl/
     autotools-configure-parameters:
       - --prefix=/usr
       - --with-papplstatedir=/var/snap/hplip-printer-app/common
@@ -102,16 +99,12 @@ parts:
       - -usr/share/doc-base
       - -usr/share/lintian
       - -snap
-    after: [patches, cups]
+    after: [cups]
 
   pappl-retrofit:
     source: https://github.com/openprinting/pappl-retrofit
     source-type: git
     plugin: autotools
-    override-build: |
-      set -eux
-      patch -p1 < $SNAPCRAFT_STAGE/patches/support-new-pappl-string-options.patch
-      snapcraftctl build
     autotools-configure-parameters:
       - --prefix=/usr
     build-packages:
@@ -142,7 +135,7 @@ parts:
       - -usr/share/doc-base
       - -usr/share/lintian
       - -snap
-    after: [patches, cups, cups-filters, pappl]
+    after: [cups, cups-filters, pappl]
 
   qpdf:
     source: https://github.com/qpdf/qpdf/releases/download/release-qpdf-10.6.3/qpdf-10.6.3.tar.gz
@@ -296,7 +289,7 @@ parts:
     source: https://github.com/OpenPrinting/cups-filters
     source-type: git
     plugin: autotools
-    # We need the 3 libraries: libcupsfilters, libppd, and libfontembed, and
+    # We need the 2 libraries: libcupsfilters and libppd, and
     # ppdc plus *.defs files (for HPLIP build to updated hpcups PPD files)
     override-build: |
       set -eux
@@ -310,7 +303,6 @@ parts:
       #perl -p -i -e 's:undef HAVE_POPPLER_PDFTOPS_WITH_RESOLUTION:define HAVE_POPPLER_PDFTOPS_WITH_RESOLUTION:' config.h
       make libcupsfilters.la
       make libppd.la
-      make libfontembed.la
       make ppdc
       mkdir -p $SNAPCRAFT_PART_INSTALL/usr/lib
       cp .libs/lib* $SNAPCRAFT_PART_INSTALL/usr/lib/
@@ -318,8 +310,6 @@ parts:
       cp ppd/*.h $SNAPCRAFT_PART_INSTALL/usr/include/ppd/
       mkdir -p $SNAPCRAFT_PART_INSTALL/usr/include/cupsfilters
       cp cupsfilters/*.h $SNAPCRAFT_PART_INSTALL/usr/include/cupsfilters/
-      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/include/fontembed
-      cp fontembed/*.h $SNAPCRAFT_PART_INSTALL/usr/include/fontembed/
       mkdir -p $SNAPCRAFT_PART_INSTALL/usr/lib/pkgconfig
       cp *.pc $SNAPCRAFT_PART_INSTALL/usr/lib/pkgconfig/
       mkdir -p $SNAPCRAFT_PART_INSTALL/usr/bin

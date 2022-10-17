@@ -16,6 +16,7 @@ export BACKEND_DIR=$SNAP/usr/lib/hplip-printer-app/backend
 export USB_QUIRK_DIR=$SNAP_COMMON
 export TESTPAGE_DIR=$SNAP/usr/share/hplip-printer-app
 export PPD_PATHS=$SNAP/usr/share/ppd/:$SNAP_COMMON/ppd/
+export STATE_DIR=$SNAP_COMMON
 export STATE_FILE=$SNAP_COMMON/hplip-printer-app.state
 export SPOOL_DIR=$SNAP_COMMON/spool
 export CUPS_SERVERROOT=$SNAP_COMMON/cups
