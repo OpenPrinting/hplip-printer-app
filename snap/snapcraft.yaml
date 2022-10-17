@@ -167,8 +167,14 @@ parts:
       - -usr/lib/pkgconfig
 
   ghostscript:
-    source: https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs9561/ghostscript-9.56.1.tar.gz
+    source: https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs1000/ghostscript-10.0.0.tar.gz
     plugin: autotools
+    # Patch to fix https://github.com/OpenPrinting/cups-filters/issues/484,
+    # will be included from 10.01.0 on
+    override-build: |
+      set -eux
+      patch -p1 < $SNAPCRAFT_STAGE/patches/ghostscript-cups-do-not-match-custom-page-sizes.patch
+      snapcraftctl build
     # We only need Raster and PostScript output
     autotools-configure-parameters:
       - --prefix=/usr
