@@ -14,7 +14,7 @@
 
 #define _GNU_SOURCE
 
-#include <pappl-retrofit/base.h>
+#include <pappl-retrofit.h>
 #include <curl/curl.h>
 #include <sys/stat.h>
 #include <openssl/sha.h>
@@ -1189,7 +1189,7 @@ hplip_web_plugin(
 {
   pr_printer_app_global_data_t *global_data =
     (pr_printer_app_global_data_t *)data;
-  pappl_system_t      *system = global_data->system; // System
+  pappl_system_t      *system = prGetSystem(global_data); // System
   const char          *status = NULL;	// Status text, if any
   const char          *uri = NULL;      // Client URI
   pappl_version_t     version;
@@ -1655,7 +1655,7 @@ hplip_plugin_support(void *data)
 {
   pr_printer_app_global_data_t *global_data =
     (pr_printer_app_global_data_t *)data;
-  pappl_system_t   *system = global_data->system;
+  pappl_system_t   *system = prGetSystem(global_data);
   hplip_plugin_status_t plugin_status;
   char             *plugin_dir;
 
@@ -1728,13 +1728,13 @@ hplip_printer_extra_web_if(pappl_printer_t *printer, // I - Printer
 {
   pr_printer_app_global_data_t *global_data =
     (pr_printer_app_global_data_t *)data;
-  pappl_system_t   *system = global_data->system;
+  pappl_system_t   *system = prGetSystem(global_data);
   pappl_pr_driver_data_t driver_data;
 
 
   // "Device Settings" page for PPDs with "Installable Options" group or
   // PostScript query code for printer settings
-  pr_setup_device_settings_page(printer, data);
+  prSetupDeviceSettingsPage(printer, data);
 
   papplPrinterGetDriverData(printer, &driver_data);
   if (strcasestr(driver_data.make_and_model, "proprietary plugin"))
@@ -1766,10 +1766,10 @@ main(int  argc,				// I - Number of command-line arguments
   // but as many printers have buggy PS interpreters we prefer converting
   // PDF to Raster and not to PS
   spooling_conversions = cupsArrayNew(NULL, NULL);
-  cupsArrayAdd(spooling_conversions, &pr_convert_pdf_to_ps);
-  cupsArrayAdd(spooling_conversions, &pr_convert_pdf_to_raster);
-  cupsArrayAdd(spooling_conversions, &pr_convert_ps_to_ps);
-  cupsArrayAdd(spooling_conversions, &pr_convert_ps_to_raster);
+  cupsArrayAdd(spooling_conversions, (void *)&PR_CONVERT_PDF_TO_PS);
+  cupsArrayAdd(spooling_conversions, (void *)&PR_CONVERT_PDF_TO_RASTER);
+  cupsArrayAdd(spooling_conversions, (void *)&PR_CONVERT_PS_TO_PS);
+  cupsArrayAdd(spooling_conversions, (void *)&PR_CONVERT_PS_TO_RASTER);
 
   // Array of stream formats, most desirables first
   //
@@ -1777,8 +1777,8 @@ main(int  argc,				// I - Number of command-line arguments
   // PostScript comes second as it is Ghostscript's streamable
   // input format.
   stream_formats = cupsArrayNew(NULL, NULL);
-  cupsArrayAdd(stream_formats, &pr_stream_cups_raster);
-  cupsArrayAdd(stream_formats, &pr_stream_postscript);
+  cupsArrayAdd(stream_formats, (void *)&PR_STREAM_CUPS_RASTER);
+  cupsArrayAdd(stream_formats, (void *)&PR_STREAM_POSTSCRIPT);
 
   // Configuration record of the Printer Application
   pr_printer_app_config_t printer_app_config =
@@ -1801,10 +1801,10 @@ main(int  argc,				// I - Number of command-line arguments
 #endif // !SNAP
     PR_COPTIONS_NO_PAPPL_BACKENDS |
     PR_COPTIONS_CUPS_BACKENDS,
-    pr_autoadd,               // Auto-add (driver assignment) callback
+    prAutoAdd,               // Auto-add (driver assignment) callback
     NULL,                     // Printer identify callback (HPLIP backend
                               // does not support this)
-    pr_testpage,              // Test page print callback
+    prTestPage,              // Test page print callback
     hplip_plugin_support,     // Update installed plugin during system setup
                               // and add web interface button and page for
                               // plugin download
@@ -1820,7 +1820,7 @@ main(int  argc,				// I - Number of command-line arguments
     "hp,HP,snmp,dnssd,usb",   // CUPS backends to be used exclusively
                               // If empty all but the ignored backends are used
     TESTPAGE,                 // Test page (printable file), used by the
-                              // standard test print callback pr_testpage()
+                              // standard test print callback prTestPage()
     ", +hpcups +[0-9]+\\.[0-9]+\\.[0-9]+[, ]*(.*)$|(\\W*[Pp]ost[Ss]cript).*$",
                               // Regular expression to separate the
                               // extra information after make/model in
@@ -1840,5 +1840,5 @@ main(int  argc,				// I - Number of command-line arguments
                               // list matches, gets the priority.
   };
 
-  return (pr_retrofit_printer_app(&printer_app_config, argc, argv));
+  return (prRetroFitPrinterApp(&printer_app_config, argc, argv));
 }
