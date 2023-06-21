@@ -57,9 +57,6 @@ parts:
       # PAPPL's build system does not insert the LDFLAGS when linking.
       # Patching Makedefs.in to fix this
       perl -p -i -e 's/^(\s*DSOFLAGS\s*=\s*\S*\s+)/\1\$\(LDFLAGS\) /' Makedefs.in
-      # Fix bug of wrong usage of network interface indices on DNS-SD
-      # registration
-      patch -p1 < $SNAPCRAFT_PROJECT_DIR/snap/local/fix-interface-index-usage-in-avahi-calls.patch
       snapcraftctl build
     autotools-configure-parameters:
       - --prefix=/usr
