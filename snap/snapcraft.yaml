@@ -1,5 +1,5 @@
 name: hplip-printer-app
-base: core20
+base: core22
 version: '1.0'
 summary: HPLIP Printer Application
 description: |
@@ -57,7 +57,7 @@ parts:
       # PAPPL's build system does not insert the LDFLAGS when linking.
       # Patching Makedefs.in to fix this
       perl -p -i -e 's/^(\s*DSOFLAGS\s*=\s*\S*\s+)/\1\$\(LDFLAGS\) /' Makedefs.in
-      snapcraftctl build
+      craftctl default
     autotools-configure-parameters:
       - --prefix=/usr
       - --with-papplstatedir=/var/snap/hplip-printer-app/common
@@ -106,7 +106,7 @@ parts:
       - --prefix=/usr
     # To find the libraries built in this Snap
     build-environment:
-      - LD_LIBRARY_PATH: "${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$SNAPCRAFT_STAGE/usr/lib"
+      - LD_LIBRARY_PATH: "${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$CRAFT_STAGE/usr/lib"
     build-packages:
       - autoconf
       - automake
@@ -223,7 +223,7 @@ parts:
     # We only need libcups (with headers, ...) and the backends
     override-build: |
       set -eux
-      patch -p1 < $SNAPCRAFT_PROJECT_DIR/snap/local/cups-dnssd-backend-socket-only.patch
+      patch -p1 < $CRAFT_PROJECT_DIR/snap/local/cups-dnssd-backend-socket-only.patch
       # We use "--with-tls=gnutls" here, as current CUPS defaults to SSL here
       # and this is buggy, causing a segfault when serving out a HTTPS web
       # interface page.
@@ -239,18 +239,18 @@ parts:
       cd ppdc
       make ppdc
       cd ..
-      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/lib
-      cp cups/libcups*.a $SNAPCRAFT_PART_INSTALL/usr/lib/
-      cp cups/libcups*.so* $SNAPCRAFT_PART_INSTALL/usr/lib/
-      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/include/cups
-      cp cups/*.h $SNAPCRAFT_PART_INSTALL/usr/include/cups/
-      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/bin
-      cp cups-config $SNAPCRAFT_PART_INSTALL/usr/bin/
-      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/lib/hplip-printer-app/backend/
+      mkdir -p $CRAFT_PART_INSTALL/usr/lib
+      cp cups/libcups*.a $CRAFT_PART_INSTALL/usr/lib/
+      cp -P cups/libcups.so* $CRAFT_PART_INSTALL/usr/lib/
+      mkdir -p $CRAFT_PART_INSTALL/usr/include/cups
+      cp cups/*.h $CRAFT_PART_INSTALL/usr/include/cups/
+      mkdir -p $CRAFT_PART_INSTALL/usr/bin
+      cp cups-config $CRAFT_PART_INSTALL/usr/bin/
+      mkdir -p $CRAFT_PART_INSTALL/usr/lib/hplip-printer-app/backend/
       ( cd backend; \
-        cp snmp dnssd socket ipp ipps lpd usb org.cups.usb-quirks $SNAPCRAFT_PART_INSTALL/usr/lib/hplip-printer-app/backend/ \
+        cp snmp dnssd socket ipp ipps lpd usb org.cups.usb-quirks $CRAFT_PART_INSTALL/usr/lib/hplip-printer-app/backend/ \
       )
-      cp conf/snmp.conf $SNAPCRAFT_PART_INSTALL/usr/lib/hplip-printer-app/backend/
+      cp conf/snmp.conf $CRAFT_PART_INSTALL/usr/lib/hplip-printer-app/backend/
     build-packages:
       - patch
       - gettext
@@ -267,7 +267,6 @@ parts:
       - libfreetype6-dev
       - libgnutls28-dev
       - libjpeg-dev
-      - libldap2-dev
       - libkrb5-dev
       - libpam0g-dev
       - libpaper-dev
@@ -282,10 +281,6 @@ parts:
       - libavahi-common3
       - libavahi-client3
       - avahi-utils
-      - libicu66
-      - libjson-glib-1.0-0
-      - libsoup2.4-1
-      - libxml2
     prime:
       - -etc/fonts
       - -var
@@ -301,6 +296,27 @@ parts:
       - usr/lib/lib*.so*
       - usr/lib/*/lib*.so*
       - usr/lib/hplip-printer-app/backend/*
+      # Reported unused by snapcraft linter
+      - -usr/lib/*/libavahi-core.*
+      - -usr/lib/*/libbind9-9*
+      - -usr/lib/*/libdns-9*
+      - -usr/lib/*/libirs-9*
+      - -usr/lib/*/libisc-9*
+      - -usr/lib/*/libisccc-9*
+      - -usr/lib/*/libisccfg-9*
+      - -usr/lib/*/libns-9*
+      - -usr/lib/*/libdaemon.*
+      - -usr/lib/*/libdconf.*
+      - -usr/lib/*/libgdbm.*
+      - -usr/lib/*/libicuio.*
+      - -usr/lib/*/libicutest.*
+      - -usr/lib/*/libicutu.*
+      - -usr/lib/*/libicuuc.*
+      - -usr/lib/*/libicui18n.*
+      - -usr/lib/*/liblmdb.*
+      - -usr/lib/*/libmaxminddb.*
+      - -usr/lib/*/libuv.*
+      - -usr/lib/*/libxml2.*
 
   libcupsfilters:
     source: https://github.com/OpenPrinting/libcupsfilters
@@ -337,9 +353,9 @@ parts:
       - libnspr4
       - libnss3
       - libopenjp2-7
-      - libpoppler97
+      - libpoppler118
       - libtiff5
-      - libwebp6
+      - libwebp7
       - libexif12
     stage:
       # The *.la file which gets installed by "make install" contains a
@@ -360,6 +376,8 @@ parts:
       - usr/lib/lib*.so*
       - usr/lib/*/lib*.so*
       - usr/lib/*/nss
+      # Reported unused by snapcraft linter
+      - -usr/lib/*/libssl3.*
     after: [cups, qpdf, ghostscript]
 
   libppd:
@@ -380,7 +398,7 @@ parts:
       - --with-pdftops-path=/snap/hplip-printer-app/current/usr/bin/pdftops
     # To find the libraries built in this Snap
     build-environment:
-      - LD_LIBRARY_PATH: "${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$SNAPCRAFT_STAGE/usr/lib"
+      - LD_LIBRARY_PATH: "${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$CRAFT_STAGE/usr/lib"
       # We have to force-define the macros for the properties of the
       # external executables here, as the tests do not work in the Snap
       # build environment
@@ -436,9 +454,9 @@ parts:
     plugin: autotools
     build-environment:
       - PYTHON: python3
-      - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$LD_LIBRARY_PATH
-      - CUPS_DATADIR: $SNAPCRAFT_STAGE/usr/share/cups
-      - PPDC_DATADIR: $SNAPCRAFT_STAGE/usr/share/ppdc
+      - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+      - CUPS_DATADIR: $CRAFT_STAGE/usr/share/cups
+      - PPDC_DATADIR: $CRAFT_STAGE/usr/share/ppdc
       # Disable ImageProcesssor (for Debian source)
       - IMAGEPROC: disable
       # ImageProcessor oly on amd64 (for upstream source)
@@ -449,7 +467,7 @@ parts:
       - on arm64:
         - BUILDARCH: aarch64-unknown-linux-gnu
       - else:
-        - BUILDARCH: $SNAPCRAFT_ARCH_TRIPLET
+        - BUILDARCH: $CRAFT_ARCH_TRIPLET
     # Paremeter list here only needed for upstream source, but no need to
     # comment out for Debian source
     autotools-configure-parameters:
@@ -485,7 +503,7 @@ parts:
       perl -p -i -e 's:/etc/hp:/snap/hplip-printer-app/current/etc/hp:' Makefile*
       # Remove hard-coded linking of binary-only libImageProcessor
       # in Makefile for non-amd64 architectures (for upstream source)
-      #if echo $SNAPCRAFT_ARCH_TRIPLET | grep -qv x86_64; then
+      #if echo $CRAFT_ARCH_TRIPLET | grep -qv x86_64; then
       #  perl -p -i -e 's: -lImageProcessor::' Makefile*
       #fi
       # Do the "./configure" (for Debian source)
@@ -530,14 +548,14 @@ parts:
       # Set path for dynamic link libraries of the proprietary plugin
       # We have to apply this patch here as patches on the C/C++ code need
       # to get applied before compiling
-      patch -p0 < $SNAPCRAFT_PROJECT_DIR/snap/local/hplip-plugin-library-load-path.patch
+      patch -p0 < $CRAFT_PROJECT_DIR/snap/local/hplip-plugin-library-load-path.patch
       # Do the "./configure; make; make install" (for upstream source)
-      # snapcraftctl build
+      # craftctl default
       # Do the "make; make install" (for Debian source)
       make
-      make DESTDIR=$SNAPCRAFT_PART_INSTALL install
+      make DESTDIR=$CRAFT_PART_INSTALL install
       # Correct hard-coded paths in hplip.conf
-      ( cd $SNAPCRAFT_PART_INSTALL/snap/hplip-printer-app/current/etc/hp; \
+      ( cd $CRAFT_PART_INSTALL/snap/hplip-printer-app/current/etc/hp; \
         perl -p -i -e 's:/var/:/var/snap/hplip-printer-app/common/var/:' hplip.conf; \
         perl -p -i -e 's:/usr/share/:/snap/hplip-printer-app/current/usr/share/:' hplip.conf; \
         perl -p -i -e 's:/usr/share/ppd/hplip:/usr/share/ppd:' hplip.conf; \
@@ -546,52 +564,52 @@ parts:
       )
       # Correct hard-coded /var and /etc paths in the utilities written in
       # Python
-      ( cd $SNAPCRAFT_PART_INSTALL/usr/share/hplip/
+      ( cd $CRAFT_PART_INSTALL/usr/share/hplip/
         perl -p -i -e 's:/var/(\S+)/hp:/var/snap/hplip-printer-app/common/var/\1/hp:' *.py */*.py */*/*.py
         perl -p -i -e 's:/var/lib/hp:/var:' *.py */*.py */*/*.py
         perl -p -i -e 's:/etc/hp:/snap/hplip-printer-app/current/etc/hp:' *.py */*.py */*/*.py
         # Set path for firmware files of the proprietary plugin
         # We have to apply this patch here so that the global corrections done
         # right above do not mess it up
-        patch -p0 < $SNAPCRAFT_PROJECT_DIR/snap/local/hplip-plugin-firmware-load-path.patch
+        patch -p0 < $CRAFT_PROJECT_DIR/snap/local/hplip-plugin-firmware-load-path.patch
       )
       # Correct Python shebang in the utilities
-      ( cd $SNAPCRAFT_PART_INSTALL; \
+      ( cd $CRAFT_PART_INSTALL; \
         for file in usr/bin/hp-*; do \
           perl -p -i -e 's:^\s*\#\!\s*/usr/bin/env\s+python.*:#!/snap/hplip-printer-app/current/usr/bin/python3:' `readlink -f $file`; \
         done; \
       )
       # "make install" install Python extension modules to the wrong place
       # (for Debian source)
-      rm $SNAPCRAFT_PART_INSTALL/usr/lib/python*/site-packages/*.la
-      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages
-      mv $SNAPCRAFT_PART_INSTALL/usr/lib/python*/site-packages/*.so $SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages
+      rm $CRAFT_PART_INSTALL/usr/lib/python*/site-packages/*.la
+      mkdir -p $CRAFT_PART_INSTALL/usr/lib/python3/dist-packages
+      mv $CRAFT_PART_INSTALL/usr/lib/python*/site-packages/*.so $CRAFT_PART_INSTALL/usr/lib/python3/dist-packages
       # "make install" misses to install the PostScript PPD files, do it now
       # (for Debian source)
-      cp prnt/ps/*.ppd.gz $SNAPCRAFT_PART_INSTALL/usr/share/ppd/hplip/HP/
+      cp prnt/ps/*.ppd.gz $CRAFT_PART_INSTALL/usr/share/ppd/hplip/HP/
       # Handle the PPD files: Unzip, remove "(recommended)" (we have only
       # HPLIP here, no other driver), compress into self-extracting archive
-      ( cd $SNAPCRAFT_PART_INSTALL/usr/share/ppd/hplip/HP/; \
+      ( cd $CRAFT_PART_INSTALL/usr/share/ppd/hplip/HP/; \
         find . -name '*.gz' | xargs gunzip -f; \
         for file in `find . -name '*.ppd'`; do \
           perl -p -i -e 's/(\*NickName:.*\S+)\s*\(recommended\)/\1/' $file; \
         done; \
-        PYTHONPATH=$SNAPCRAFT_STAGE/lib/python3.8/site-packages $SNAPCRAFT_STAGE/bin/pyppd -v -o hplip-ppds .; \
+        PYTHONPATH=$CRAFT_STAGE/lib/python3.10/site-packages $CRAFT_STAGE/bin/pyppd -v -o hplip-ppds .; \
         mv hplip-ppds ../..; \
         cd ../..; \
         rm -rf hplip; \
       )
       # Link Python 3 to the "python" executable name (no older Python in this
       # Snap and everything needs Python 3)
-      ln -sf python3 $SNAPCRAFT_PART_INSTALL/usr/bin/python
+      ln -sf python3 $CRAFT_PART_INSTALL/usr/bin/python
       # Install the binary-only libImageProcessor only if we build the Snap for
       # amd64 (x86_64) (for upstream source)
-      #if echo $SNAPCRAFT_ARCH_TRIPLET | grep -q x86_64; then
-      #  cp prnt/hpcups/libImageProcessor-x86_64.so $SNAPCRAFT_PART_INSTALL/usr/lib/libImageProcessor.so
+      #if echo $CRAFT_ARCH_TRIPLET | grep -q x86_64; then
+      #  cp prnt/hpcups/libImageProcessor-x86_64.so $CRAFT_PART_INSTALL/usr/lib/libImageProcessor.so
       #fi
       # Install the public key for verifying the signature of the proprietary
       # plugin (for Debian source)
-      cp debian/upstream/signing-key.asc $SNAPCRAFT_PART_INSTALL/usr/share/hplip/
+      cp debian/upstream/signing-key.asc $CRAFT_PART_INSTALL/usr/share/hplip/
     build-packages:
       - ubuntu-dev-tools
       - dpkg-dev
@@ -616,22 +634,22 @@ parts:
     stage-packages:
       - python3
       - python3-minimal
-      - python3.8
-      - python3.8-minimal
+      - python3.10
+      - python3.10-minimal
       - python3-dbus
       - python3-distro
       - python3-gi
       - python3-pexpect
       - python3-pil
       - python3-reportlab
-      - libpython3.8
-      - libpython3.8-stdlib
+      - libpython3.10
+      - libpython3.10-stdlib
       - wget
       - xz-utils
       # We stage avahi-utils already in the "cups" part, to stage
       # everything Avahi-related there, to avoid any file clashes.
       #- avahi-utils
-      - libsnmp35
+      - libsnmp40
       - libsnmp-base
     organize:
       usr/lib/cups/filter/hpcups: usr/lib/hplip-printer-app/filter/hpcups
@@ -660,6 +678,16 @@ parts:
       - usr/share/snmp
       - usr/lib/hplip-printer-app
       - -usr/lib/cups
+      # Reported unused by snapcraft linter
+      - -usr/lib/libhpip.*
+      - -usr/lib/*/libavahi-core.*
+      - -usr/lib/*/libgdbm.*
+      - -usr/lib/*/libgdbm_compat.*
+      - -usr/lib/*/libnetsnmpagent.*
+      - -usr/lib/*/libnetsnmpmibs.*
+      - -usr/lib/*/libpci*
+      - -usr/lib/*/libsensors.*
+      - -usr/lib/*/libsnmp.*
     after: [cups, pyppd]
 
   hplip-printer-app:
@@ -673,7 +701,7 @@ parts:
       - HPLIP_PLUGIN_ALT_DIR=/var/snap/hplip-printer-app/common
     # To find the libraries built in this Snap
     build-environment:
-      - LD_LIBRARY_PATH: "${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$SNAPCRAFT_STAGE/usr/lib"
+      - LD_LIBRARY_PATH: "${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$CRAFT_STAGE/usr/lib"
     # To improve convenience for developers (and everyone who wants to
     # build from source), we do a "make clean" before "make" here,
     # because if we had done "make" off-Snap, directly in the source
@@ -686,7 +714,7 @@ parts:
     override-build: |
       set -eux
       make clean
-      snapcraftctl build
+      craftctl default
     build-packages:
       - libusb-1.0-0-dev
       - libcurl4-gnutls-dev
@@ -697,23 +725,14 @@ parts:
       - libjbig0
       - liblcms2-2
       - libtiff5
-      - libwebp6
+      - libwebp7
       - libcurl3-gnutls
-      - libssl1.1
-      - libasn1-8-heimdal
-      - libgssapi3-heimdal
-      - libhcrypto4-heimdal
-      - libheimbase1-heimdal
-      - libheimntlm0-heimdal
-      - libhx509-5-heimdal
-      - libkrb5-26-heimdal
-      - libldap-2.4-2
+      - libssl3
+      - libldap-2.5-0
       - libnghttp2-14
-      - libroken18-heimdal
       - librtmp1
       - libsasl2-2
       - libssh-4
-      - libwind0-heimdal
       - gpg
       - gpg-agent
     stage:
@@ -730,6 +749,8 @@ parts:
       - -var
       - -usr/var
       - -usr/share/man
+      # Reported unused by snapcraft linter
+      - -usr/lib/*/libgssapi.*
     after: [pappl-retrofit, pappl, cups, libcupsfilters, libppd, hplip]
 
   scripts:
