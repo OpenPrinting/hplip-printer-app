@@ -1,6 +1,5 @@
 name: hplip-printer-app
 base: core22
-version: '1.0'
 summary: HPLIP Printer Application
 description: |
   The HPLIP Printer Application is a PAPPL (Printer Application
@@ -8,8 +7,8 @@ description: |
   printer driver of HPLIP. Loading the proprietary plugin from HP is
   supported, support for scanning will be added later.
 
-grade: stable
 confinement: strict
+adopt-info: hplip
 
 # Only build on the architectures supported
 architectures:
@@ -180,7 +179,7 @@ parts:
       - -usr/lib/pkgconfig
 
   ghostscript:
-    source: https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10011/ghostscript-10.01.1.tar.gz
+    source: https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10012/ghostscript-10.01.2.tar.gz
     plugin: autotools
     # We only need Raster and PostScript output
     autotools-configure-parameters:
@@ -499,6 +498,18 @@ parts:
     # the hp backend, and the hp-probe utility
     override-build: |
       set -eux
+      # Versioning settings:
+      # Grade: stable/devel
+      GRADE=stable
+      # Package release number (integer)
+      PACKAGERELEASE=1
+      # Current upstream version of HPLIP
+      upstreamversion="`cat configure.in | grep '^AC_INIT\b' | perl -p -e 's/^.*\[([\d\.]+)\].*$/\1/'`"
+      # Compose version string
+      version="$upstreamversion-$PACKAGERELEASE"
+      # Set version and grade
+      craftctl set version="$version"
+      craftctl set grade="$GRADE"
       # Correct hard-coded /etc/hp/ path in Makefile
       perl -p -i -e 's:/etc/hp:/snap/hplip-printer-app/current/etc/hp:' Makefile*
       # Remove hard-coded linking of binary-only libImageProcessor
@@ -696,6 +707,7 @@ parts:
     make-parameters:
       - LDFLAGS="$LDFLAGS -ljpeg"
       - SNAP=1
+      - VERSION="$VERSION"
       - HPLIP_CONF_DIR=/snap/hplip-printer-app/current/etc/hp
       - HPLIP_PLUGIN_STATE_DIR=/var/snap/hplip-printer-app/common/var
       - HPLIP_PLUGIN_ALT_DIR=/var/snap/hplip-printer-app/common
@@ -711,10 +723,21 @@ parts:
     # libraries, ending up with the Snap containing an executable
     # which does not work inside the Snap. The "make clean" removes
     # any accidentally grabbed binary.
+    #
+    # We need to directly call the "make" and "make install" commands
+    # here as we cannot inject an environment variable into the
+    # default build process ("craftctl default") and we also cannot
+    # call "craftctl get version" in the lines of "make-parameters:"
+    # or "build-environment:". This way we get the version number of
+    # our Snap (which is extracted from the HPLIP upstream source)
+    # inyo the ghostscript-printer-app executable.
     override-build: |
       set -eux
       make clean
-      craftctl default
+      VERSION="`craftctl get version`"
+      make -j"8" LDFLAGS="$LDFLAGS -ljpeg" SNAP=1 VERSION="$VERSION" HPLIP_CONF_DIR=/snap/hplip-printer-app/current/etc/hp HPLIP_PLUGIN_STATE_DIR=/var/snap/hplip-printer-app/common/var HPLIP_PLUGIN_ALT_DIR=/var/snap/hplip-printer-app/common
+      make -j"8" install LDFLAGS="$LDFLAGS -ljpeg" SNAP=1 VERSION="$VERSION" HPLIP_CONF_DIR=/snap/hplip-printer-app/current/etc/hp HPLIP_PLUGIN_STATE_DIR=/var/snap/hplip-printer-app/common/var HPLIP_PLUGIN_ALT_DIR=/var/snap/hplip-printer-app/common DESTDIR="$CRAFT_PART_INSTALL"
+      #craftctl default
     build-packages:
       - libusb-1.0-0-dev
       - libcurl4-gnutls-dev

@@ -34,6 +34,33 @@ ifdef HPLIP_PLUGIN_ALT_DIR
 DIRS		+=	-DHPLIP_PLUGIN_ALT_DIR=\"$(HPLIP_PLUGIN_ALT_DIR)\"
 endif
 CFLAGS		+=	`pkg-config --cflags pappl` `cups-config --cflags` `pkg-config --cflags libppd` `pkg-config --cflags libcupsfilters` `pkg-config --cflags libpappl-retrofit` `pkg-config --cflags libcurl` `pkg-config --cflags libcrypto` $(DIRS) $(OPTIM)
+ifdef VERSION
+CFLAGS		+=	-DSYSTEM_VERSION_STR="\"$(VERSION)\""
+ifndef MAJOR
+MAJOR		=	`echo $(VERSION) | perl -p -e 's/^(\d+).*$$/\1/'`
+endif
+ifndef MINOR
+MINOR		=	`echo $(VERSION) | perl -p -e 's/^\d+\D+(\d+).*$$/\1/'`
+endif
+ifndef PATCH
+PATCH		=	`echo $(VERSION) | perl -p -e 's/^\d+\D+\d+\D+(\d+).*$$/\1/'`
+endif
+ifndef PACKAGE
+PACKAGE		=	`echo $(VERSION) | perl -p -e 's/^\d+\D+\d+\D+\d+\D+(\d+).*$$/\1/'`
+endif
+endif
+ifdef MAJOR
+CFLAGS		+=	-DSYSTEM_VERSION_ARR_0=$(MAJOR)
+endif
+ifdef MINOR
+CFLAGS		+=	-DSYSTEM_VERSION_ARR_1=$(MINOR)
+endif
+ifdef PATCH
+CFLAGS		+=	-DSYSTEM_VERSION_ARR_2=$(PATCH)
+endif
+ifdef PACKAGE
+CFLAGS		+=	-DSYSTEM_VERSION_ARR_3=$(PACKAGE)
+endif
 ifdef SNAP
 CFLAGS		+=	-DSNAP=$(SNAP)
 endif

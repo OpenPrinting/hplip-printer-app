@@ -32,11 +32,21 @@
 
 #define SYSTEM_NAME "HPLIP Printer Application"
 #define SYSTEM_PACKAGE_NAME "hplip-printer-app"
-#define SYSTEM_VERSION_STR "1.0"
-#define SYSTEM_VERSION_ARR_0 1
-#define SYSTEM_VERSION_ARR_1 0
-#define SYSTEM_VERSION_ARR_2 0
-#define SYSTEM_VERSION_ARR_3 0
+#ifndef SYSTEM_VERSION_STR
+#  define SYSTEM_VERSION_STR "1.0"
+#endif
+#ifndef SYSTEM_VERSION_ARR_0
+#  define SYSTEM_VERSION_ARR_0 1
+#endif
+#ifndef SYSTEM_VERSION_ARR_1
+#  define SYSTEM_VERSION_ARR_1 0
+#endif
+#ifndef SYSTEM_VERSION_ARR_2
+#  define SYSTEM_VERSION_ARR_2 0
+#endif
+#ifndef SYSTEM_VERSION_ARR_3
+#  define SYSTEM_VERSION_ARR_3 0
+#endif
 #define SYSTEM_WEB_IF_FOOTER "Copyright &copy; 2021 by Till Kamppeter. Provided under the terms of the <a href=\"https://www.apache.org/licenses/LICENSE-2.0\">Apache License 2.0</a>."
 
 // Test page
