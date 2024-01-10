@@ -108,8 +108,7 @@ parts:
     source-depth: 1
 # ext:updatesnap
 #   version-format:
-#     lower-than: '2'
-#     no-9x-revisions: true
+#     format: '%V'
     plugin: autotools
     autotools-configure-parameters:
       - --prefix=/usr
@@ -493,11 +492,11 @@ parts:
     # Debian source
     source: https://salsa.debian.org/printing-team/hplip.v2.git
     source-type: git
-    source-branch: debian/3.22.10+dfsg0-2
+    source-tag: debian/3.22.10+dfsg0-2
     source-depth: 1 
 # ext:updatesnap
 #   version-format:
-#     ignore: true
+#     format: 'debian/%V'
     # Upstream source
     #source: https://sourceforge.net/projects/hplip/files/hplip/3.22.10/hplip-3.22.10.tar.gz
     plugin: autotools
