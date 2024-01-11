@@ -37,7 +37,12 @@ parts:
   pappl:
     source: https://github.com/michaelrsweet/pappl
     source-type: git
+    source-tag: 'v1.4.4'
     source-depth: 1
+# ext:updatesnap
+#   version-format:
+#     lower-than: '2'
+#     no-9x-revisions: true
     plugin: autotools
     override-build: |
       set -eux
@@ -99,7 +104,11 @@ parts:
   pappl-retrofit:
     source: https://github.com/openprinting/pappl-retrofit
     source-type: git
+    source-tag: '1.0b2'
     source-depth: 1
+# ext:updatesnap
+#   version-format:
+#     format: '%V'
     plugin: autotools
     autotools-configure-parameters:
       - --prefix=/usr
@@ -137,7 +146,14 @@ parts:
     after: [cups, pappl, libcupsfilters, libppd]
 
   qpdf:
-    source: https://github.com/qpdf/qpdf/releases/download/v11.4.0/qpdf-11.4.0.tar.gz
+    source: https://github.com/qpdf/qpdf
+    source: git
+    source-tag: 'v11.8.0'
+    source-depth: 1
+# ext:updatesnap
+#   version-format:
+#     lower-than: '12'
+#     no-9x-revisions: true
     plugin: cmake
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/
@@ -179,7 +195,16 @@ parts:
       - -usr/lib/pkgconfig
 
   ghostscript:
-    source: https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10012/ghostscript-10.01.2.tar.gz
+    #source: https://git.ghostscript.com/ghostpdl.git
+    source: https://github.com/ArtifexSoftware/ghostpdl.git
+    source-type: git
+    source-tag: 'ghostpdl-10.02.1'
+    source-depth: 1
+# ext:updatesnap
+#   version-format:
+#     format: "ghostpdl-%M.%m.%R"
+#     lower-than: '11'
+#     no-9x-revisions: true
     plugin: autotools
     # We only need Raster and PostScript output
     autotools-configure-parameters:
@@ -217,7 +242,12 @@ parts:
   cups:
     source: https://github.com/OpenPrinting/cups
     source-type: git
+    source-tag: 'v2.4.7'
     source-depth: 1
+# ext:updatesnap
+#   version-format:
+#     lower-than: '3'
+#     no-9x-revisions: true
     plugin: autotools
     # We only need libcups (with headers, ...) and the backends
     override-build: |
@@ -320,7 +350,12 @@ parts:
   libcupsfilters:
     source: https://github.com/OpenPrinting/libcupsfilters
     source-type: git
+    source-tag: '2.0.0'
     source-depth: 1
+# ext:updatesnap
+#   version-format:
+#     lower-than: '3'
+#     no-9x-revisions: true
     plugin: autotools
     # We only need libcupsfilters itself. so we simply do not prime the
     # auxiliary files (/usr/share)
@@ -382,7 +417,12 @@ parts:
   libppd:
     source: https://github.com/OpenPrinting/libppd
     source-type: git
+    source-tag: '2.0.0'
     source-depth: 1
+# ext:updatesnap
+#   version-format:
+#     lower-than: '3'
+#     no-9x-revisions: true
     plugin: autotools
     # We libppd and ppdc plus *.defs files (for HPLIP build to updated hpcups
     # PPD files)
@@ -431,7 +471,13 @@ parts:
   pyppd:
     source: https://github.com/OpenPrinting/pyppd
     source-type: git
+    source-tag: 'release-1-1-0'
     source-depth: 1
+# ext:updatesnap
+#   version-format:
+#     format: 'release-%M-%m-%R'
+#     lower-than: '2'
+#     no-9x-revisions: true
     plugin: python
     override-prime: ""
 
@@ -446,8 +492,11 @@ parts:
     # Debian source
     source: https://salsa.debian.org/printing-team/hplip.v2.git
     source-type: git
-    source-branch: debian/3.22.10+dfsg0-2
-    source-depth: 1
+    source-tag: debian/3.22.10+dfsg0-2
+    source-depth: 1 
+# ext:updatesnap
+#   version-format:
+#     format: 'debian/%V'
     # Upstream source
     #source: https://sourceforge.net/projects/hplip/files/hplip/3.22.10/hplip-3.22.10.tar.gz
     plugin: autotools
