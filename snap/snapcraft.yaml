@@ -147,7 +147,7 @@ parts:
 
   qpdf:
     source: https://github.com/qpdf/qpdf
-    source: git
+    source-type: git
     source-tag: 'v11.8.0'
     source-depth: 1
 # ext:updatesnap
