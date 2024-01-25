@@ -104,10 +104,11 @@ parts:
   pappl-retrofit:
     source: https://github.com/openprinting/pappl-retrofit
     source-type: git
-    source-tag: '1.0b2'
+    # source-tag: '1.0b2'
     source-depth: 1
 # ext:updatesnap
 #   version-format:
+#     ignore: true
 #     format: '%V'
     plugin: autotools
     autotools-configure-parameters:
@@ -744,6 +745,7 @@ parts:
       - python3
       - xz-utils
       - jq
+      - curl
     stage-packages:
       - python3
       - python3-minimal
