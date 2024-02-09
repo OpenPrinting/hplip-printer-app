@@ -17,4 +17,5 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           repo: ${{ github.repository }}
+          version-schema: '^debian/(\d+\.\d+\.\d+)'
           

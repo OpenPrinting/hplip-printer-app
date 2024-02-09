@@ -1,5 +1,7 @@
 name: hplip-printer-app
 base: core22
+version: '3.22.10-4'
+grade: stable
 summary: HPLIP Printer Application
 description: |
   The HPLIP Printer Application is a PAPPL (Printer Application
@@ -547,67 +549,6 @@ parts:
       - --disable-qt4
       - --disable-qt5
       - --disable-policykit
-    override-pull: |
-      set -eux
-      # Do the actual pull task
-      craftctl default
-      # Settings:
-      # Force channel: auto/devel/edge/stable
-      CHANNEL=stable
-      # Force package release number (integer) or "auto"
-      PACKAGERELEASE=auto
-      # Time stamp of Snap build in Snap Store
-      snapbuilddatehuman=`curl -s -H 'Snap-Device-Series: 16' https://api.snapcraft.io/v2/snaps/info/hplip-printer-app | jq -r '."channel-map" | .[] | select(.channel.name == "edge") | select(.channel.architecture == "amd64") | ."created-at"'`
-      snapbuilddate=`date +%s --date=$snapbuilddatehuman`
-      if [ -z "$snapbuilddate" ]; then
-          snapbuilddate=0
-      fi
-      # Time stamp of the last GIT commit of the snapping repository
-      pushd $CRAFT_PROJECT_DIR
-      gitcommitdate=`git log -1 --date=unix | grep Date: | perl -p -e 's/Date:\s*//'`
-      popd
-      if [ -z "$gitcommitdate" ]; then
-          gitcommitdate=0
-      fi
-      # Previous stable and development version
-      prevstable="$(curl -s -H 'Snap-Device-Series: 16' https://api.snapcraft.io/v2/snaps/info/hplip-printer-app | jq -r '."channel-map" | .[] | select(.channel.name == "stable") | select(.channel.architecture == "'$CRAFT_TARGET_ARCH'") | .version')"
-      if [ -z "$prevstable" ]; then
-          prevstable=0
-      fi
-      prevdevel="$(curl -s -H 'Snap-Device-Series: 16' https://api.snapcraft.io/v2/snaps/info/hplip-printer-app | jq -r '."channel-map" | .[] | select(.channel.name == "edge") | select(.channel.architecture == "'$CRAFT_TARGET_ARCH'") | .version')"
-      if [ -z "$prevdevel" ]; then
-          prevdevel=0
-      fi
-      # Previous version in general
-      dpkg --compare-versions "$prevdevel" lt "$prevstable" && prevversion=$prevstable || prevversion=$prevdevel
-      # Current upstream version of HPLIP
-      upstreamversion="$(git describe --tags --always | sed -E 's/^v//;s/[+_].*//;y/-/./;s/^debian\///')"
-      # Determine package release number
-      if test "x$PACKAGERELEASE" = "xauto"; then
-          packagerelease=`echo "$prevversion" | perl -p -e 's/^('"$upstreamversion"'\-(\d+)|.*)$/\2/'`
-          if [ -z "$packagerelease" ]; then
-              packagerelease=1
-          else
-              if test "$gitcommitdate" -gt "$snapbuilddate"; then
-                  packagerelease=$(( $packagerelease + 1 ))
-              fi
-          fi
-      else
-          packagerelease=$PACKAGERELEASE
-      fi
-      # Compose version string
-      version="$upstreamversion-$packagerelease"
-      # Select channel
-      if test "x$CHANNEL" = "xedge" -o "x$CHANNEL" = "xdevel"; then
-          grade=devel
-      elif test "x$CHANNEL" = "xstable"; then
-          grade=stable
-      else
-          [ -n "$(echo $version | grep "+git")" ] && grade=devel || grade=stable
-      fi
-      # Set version and grade
-      craftctl set version="$version"
-      craftctl set grade="$grade"
     # We need the PostScript and hpcups PPDs, the hpps and hpcups filters,
     # the hp backend, and the hp-probe utility
     override-build: |
@@ -744,7 +685,6 @@ parts:
       - perl-base
       - python3
       - xz-utils
-      - jq
       - curl
     stage-packages:
       - python3
