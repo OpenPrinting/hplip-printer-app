@@ -1,6 +1,6 @@
 name: hplip-printer-app
 base: core22
-version: '3.22.10-4'
+version: '3.22.10-5'
 grade: stable
 summary: HPLIP Printer Application
 description: |
@@ -39,7 +39,7 @@ parts:
   pappl:
     source: https://github.com/michaelrsweet/pappl
     source-type: git
-    source-tag: 'v1.4.5'
+    source-tag: 'v1.4.6'
     source-depth: 1
 # ext:updatesnap
 #   version-format:
