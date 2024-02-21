@@ -1,6 +1,6 @@
 name: hplip-printer-app
 base: core22
-version: '3.22.10-5'
+version: '3.22.10-6'
 grade: stable
 summary: HPLIP Printer Application
 description: |
@@ -201,7 +201,7 @@ parts:
     #source: https://git.ghostscript.com/ghostpdl.git
     source: https://github.com/ArtifexSoftware/ghostpdl.git
     source-type: git
-    source-tag: 'ghostpdl-10.02.1'
+    source-tag: 'ghostpdl-10.03.0rc1_test'
     source-depth: 1
 # ext:updatesnap
 #   version-format:
