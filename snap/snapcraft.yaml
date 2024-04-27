@@ -1,6 +1,6 @@
 name: hplip-printer-app
 base: core22
-version: '3.22.10-7'
+version: '3.22.10-8'
 grade: stable
 summary: HPLIP Printer Application
 description: |
@@ -248,7 +248,7 @@ parts:
   cups:
     source: https://github.com/OpenPrinting/cups
     source-type: git
-    source-tag: 'v2.4.7'
+    source-tag: 'v2.4.8'
     source-depth: 1
 # ext:updatesnap
 #   version-format:
@@ -498,7 +498,7 @@ parts:
     # Debian source
     source: https://salsa.debian.org/printing-team/hplip.v2.git
     source-type: git
-    source-tag: 'debian/3.22.10+dfsg0-4'
+    source-tag: 'debian/3.22.10+dfsg0-5'
     source-depth: 1 
 # ext:updatesnap
 #   version-format:
