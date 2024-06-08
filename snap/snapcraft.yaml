@@ -1,6 +1,6 @@
 name: hplip-printer-app
 base: core22
-version: '3.22.10-8'
+version: '3.22.10-9'
 grade: stable
 summary: HPLIP Printer Application
 description: |
@@ -151,7 +151,7 @@ parts:
   qpdf:
     source: https://github.com/qpdf/qpdf
     source-type: git
-    source-tag: 'v11.9.0'
+    source-tag: 'v11.9.1'
     source-depth: 1
 # ext:updatesnap
 #   version-format:
