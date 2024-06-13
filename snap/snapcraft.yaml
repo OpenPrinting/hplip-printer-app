@@ -1,6 +1,6 @@
 name: hplip-printer-app
 base: core22
-version: '3.22.10-10'
+version: '3.22.10-7'
 grade: stable
 summary: HPLIP Printer Application
 description: |
