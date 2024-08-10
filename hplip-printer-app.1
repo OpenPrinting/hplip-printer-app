@@ -1,0 +1,112 @@
+.\"
+.\" HPLIP Printer Application man page
+.\"
+.\" Copyright © 2020-2021 by Till Kamppeter
+.\" Copyright © 2020 by Michael R Sweet
+.\"
+.\" Licensed under Apache License v2.0.  See the file "LICENSE" for more
+.\" information.
+.\"
+.TH hplip-printer-app 1 "hplip-printer-app" "2021-09-04" "OpenPrinting"
+.SH NAME
+hplip-printer-app \- HPLIP Printer Application
+.SH SYNOPSIS
+.B hplip-printer-app
+[
+.I SUB-COMMAND
+] [ OPTIONS ] [ FILES ]
+.SH DESCRIPTION
+.B hplip-printer-app
+is a Printer Application that can be run standalone or as a dedicated IPP Everywhere network service.
+.B hplip-printer-app
+supports printing PDF files, PostScript files, JPEG images, PNG images, and Apple/PWG raster files to most USB and network printers from HP and Apollo. It is based on HP's HPLIP driver suite, using its `hpcups` and `hpps` CUPS print filters and the `hp` CUPS backend. For discovering network printers the `hp-probe` utility is used.
+
+It currently only supports printing. Scanning and loading the proprietary pluging from HP will get added later. I am not sure whether I will also include the utilities, both text and graphical interface.
+
+Note that HPLIP is actively maintained by HP. There is a new release every 2 or 3 months, but currently still only as classic CUPS and SANE drivers. It would be HP's task to switch their software over to be a Printer Application, or offer both modes. For the time being until this happens I will offer this Printer Application retro-fitting the current HPLIP releases.
+
+.SH SUB-COMMANDS
+If no sub-command is specified, "submit" is assumed.
+
+The following sub-commands are recognized by
+.B hplip-printer-app:
+.TP 5
+add
+Add a printer queue.
+.TP 5
+cancel
+Cancel one or more print jobs.
+.TP 5
+default
+Get/Set the default printer queue.
+.TP 5
+delete
+Delete a printer queue.
+.TP 5
+devices
+List connected printers.
+.TP 5
+drivers
+List the supported drivers.
+.TP 5
+jobs
+List pending print jobs.
+.TP 5
+modify
+Modify a printer queue.
+.TP 5
+options
+List supported options.
+.TP 5
+printers
+List the printer queues.
+.TP 5
+server
+Start a server.
+.TP 5
+shutdown
+Shutdown a running server.
+.TP 5
+status
+Show the status of a printer or all printers.
+.TP 5
+submit
+Submit a file for printing.
+.SH OPTIONS
+The following options are recognized by
+.B hplip-printer-app:
+.TP 5
+-a
+Cancel all jobs.
+.TP 5
+-d PRINTER
+Specify printer.
+.TP 5
+-h HOST
+Specify hostname.
+.TP 5
+-j JOB-ID
+Specify job ID.
+.TP 5
+-m DRIVER-NAME
+Specify driver.
+.TP 5
+-n COPIES
+Specify number of copies.
+.TP 5
+-o NAME=VALUE
+Specify option.
+.TP 5
+-t TITLE
+Specify job title.
+.TP 5
+-u URI
+Specify ipp: or ipps: printer/server.
+.TP 5
+-v DEVICE-URI
+Specify socket: or usb: device.
+.SH SEE ALSO
+https://github.com/OpenPrinting/hplip-printer-app
+.SH COPYRIGHT
+Copyright \[co] 2020-2021 by Till Kamppeter.
+Copyright \[co] 2020 by Michael R Sweet.
