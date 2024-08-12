@@ -824,7 +824,7 @@ parts:
       - libnss-mdns
       - mdns-scan
       - dbus
-      - python3f
+      - python3
 
   scripts:
     plugin: dump
