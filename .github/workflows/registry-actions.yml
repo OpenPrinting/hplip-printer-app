@@ -1,0 +1,117 @@
+name: Pack and Publish OCI Image to Docker Registry
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      workflow_choice:
+        description: "Choose Release Channel"
+        required: true
+        default: "edge"
+        type: choice
+        options:
+          - edge
+          - stable
+
+jobs:
+  build-rock:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Pack with Rockcraft
+        uses: canonical/craft-actions/rockcraft-pack@main
+        id: rockcraft
+
+      - name: Upload Rock Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cups-rock
+          path: ${{ steps.rockcraft.outputs.rock }}
+
+  publish-rock-edge:
+    needs: build-rock
+    if: github.ref_name == 'main' && (github.event.inputs.workflow_choice == 'edge' || github.event_name == 'push')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Rock Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cups-rock
+
+      - name: Install Dependencies
+        run: |
+          sudo snap install rockcraft --classic
+          sudo snap install docker
+          sudo snap install yq
+
+      - name: Ensure Docker Daemon is Running
+        run: |
+          sudo systemctl start docker
+          sudo systemctl enable docker
+          sudo systemctl is-active --quiet docker || sudo systemctl start docker
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3.2.0
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        env:
+          USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        run: |
+          IMAGE="$(yq '.name' rockcraft.yaml)"
+          VERSION="$(yq '.version' rockcraft.yaml)"
+          ROCK="$(ls *.rock | tail -n 1)"
+          sudo rockcraft.skopeo --insecure-policy copy oci-archive:"${ROCK}" docker-daemon:"${USERNAME}/${IMAGE}:${VERSION}-edge"
+          docker push ${USERNAME}/${IMAGE}:${VERSION}-edge
+          docker tag ${USERNAME}/${IMAGE}:${VERSION}-edge ${USERNAME}/${IMAGE}:latest
+          docker push ${USERNAME}/${IMAGE}:latest
+
+  publish-rock-stable:
+    needs: build-rock
+    if: github.ref_name == 'main' && github.event.inputs.workflow_choice == 'stable'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Rock Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cups-rock
+
+      - name: Install Dependencies
+        run: |
+          sudo snap install rockcraft --classic
+          sudo snap install docker
+          sudo snap install yq
+
+      - name: Ensure Docker Daemon is Running
+        run: |
+          sudo systemctl start docker
+          sudo systemctl enable docker
+          sudo systemctl is-active --quiet docker || sudo systemctl start docker
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3.2.0
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        env:
+          USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        run: |
+          IMAGE="$(yq '.name' rockcraft.yaml)"
+          VERSION="$(yq '.version' rockcraft.yaml)"
+          ROCK="$(ls *.rock | tail -n 1)"
+          sudo rockcraft.skopeo --insecure-policy copy oci-archive:"${ROCK}" docker-daemon:"${USERNAME}/${IMAGE}:${VERSION}-stable"
+          docker push ${USERNAME}/${IMAGE}:${VERSION}-stable

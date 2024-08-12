@@ -1,0 +1,11 @@
+--- common/utils.c.orig	2021-10-01 16:29:26.049843045 +0200
++++ common/utils.c	2021-10-01 16:32:57.678932412 +0200
+@@ -227,6 +227,8 @@
+         return pHandler;
+     }
+ 
++    snprintf(szLibraryFile, sizeof(szLibraryFile), "/var/snap/hplip-printer-app/common/plugin/%s", szPluginName);
++
+     return load_library (szLibraryFile);
+     
+ }
