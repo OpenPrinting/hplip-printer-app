@@ -35,7 +35,7 @@ internally. Also their utilities need to be made independent of
 CUPS.**
 
 For PostScript printers you can also use the [PostScript Printer
-Application](https://github.com/OpenPrinting/ps-printer-app),
+Application]() - Link to be updated,
 especially if you have it already installed for some non-HP PostScript
 printer.
 
@@ -102,7 +102,7 @@ first.
 
 - The information about which printer models are supported and which
   are their capabilities is based on the PPD files included in
-  HPLIP. They are packaged in the Snap as a compressed archive.
+  HPLIP. They are packaged in the Rock as a compressed archive.
 
 - Standard job IPP attributes are mapped to the driver's option
   settings best fitting to them so that users can print from any type
@@ -122,10 +122,10 @@ first.
   option settings (the original options are still accessible via web
   admin interface).
 
-- The Snap of the HPLIP Printer Application takes HPLIP's source code
+- The Rock of the HPLIP Printer Application takes HPLIP's source code
   from Debian's packaging repository instead of directly from HP, as
   Debian's package has ~80 patches fixing bugs which are reported to
-  HP but the patch not adopted upstream. So with the Snap users should
+  HP but the patch not adopted upstream. So with the Rock users should
   get the same experience in reliability and quality as with the
   Debian package.
 
@@ -133,77 +133,79 @@ first.
   additional page in the web interface. This adds support for some
   laser printers which need their firmware loaded every time they are
   turned on or which use certain proprietary print data formats. This
-  works both in the Snap and in the classic installation of the
+  works both in the Rock and in the classic installation of the
   Printer Application (must run as root, otherwise only status check
   of the plugin).
 
-### To Do
+## Install from Docker Hub
+### Prerequisites
 
-- Support for scanning on HP's multi-function printers. this requires
-  scanning support in PAPPL (which made [good progress in GSoC
-  2021](https://github.com/michaelrsweet/pappl/commits/scanning)).
+1. **Docker Installed**: Ensure Docker is installed on your system. You can download it from the [official Docker website](https://www.docker.com/get-started).
 
-- PDF test page, for example generated with the bannertopdf filter.
+### Step-by-Step Guide
 
-- Human-readable strings for vendor options (Needs support by PAPPL:
-  [Issue #58: Localization
-  support](https://github.com/michaelrsweet/pappl/issues/58))
+#### 1. Pull the hplip-printer-app docker image:
 
-- Internationalization/Localization (Needs support by PAPPL: [Issue
-  #58: Localization
-  support](https://github.com/michaelrsweet/pappl/issues/58))
-
-- SNMP Ink level check via ps_status() function (Needs support by PAPPL:
-  [Issue #83: CUPS does IPP and SNMP ink level polls via backends,
-  PAPPL should have functions for
-  this](https://github.com/michaelrsweet/pappl/issues/83))
-
-- Build options for cups-filters, to build without libqpdf and/or
-  without libppd, the former will allow to create the Snap of this
-  Printer Application without downloading and building QPDF
-
-
-## THE SNAP
-
-### Installing and building
-
-To just run and use this Printer Application, simply install it from
-the Snap Store:
-
-```
-sudo snap install --edge hplip-printer-app
+The first step is to pull the hplip-printer-app Docker image from Docker Hub.
+```sh
+sudo docker pull openprinting/hplip-printer-app
 ```
 
-Then follow the instructions below for setting it up.
+#### 2. Start the hplip-printer-app Container
 
-To build the Snap by yourself, in the main directory of this
-repository run
-
-```
-snapcraft snap
-```
-
-This will download all needed packages and build the HPLIP Printer
-Application. Note that PAPPL (upcoming 1.0) and cups-filters (upcoming
-2.0) are pulled directly from their GIT repositories, as there are no
-appropriate releases yet. This can also lead to the fact that this
-Printer Application will suddenly not build any more.
-
-To install the resulting Snap run
-
-```
-sudo snap install --dangerous hplip-printer-app_1.0_amd64.snap
+##### Run the following Docker command to run the hplip-printer-app image:
+```sh
+sudo docker run --rm -d --name hplip-printer-app -p <port>:8000 \
+    openprinting/hplip-printer-app:latest
 ```
 
+## Setting Up and Running hplip-printer-app locally
+
+### Prerequisites
+
+1. **Docker Installed**: Ensure Docker is installed on your system. You can download it from the [official Docker website](https://www.docker.com/get-started).
+
+2. **Rockcraft**: Rockcraft should be installed. You can install Rockcraft using the following command:
+```sh
+sudo snap install rockcraft --classic
+```
+
+3. **Skopeo**: Skopeo should be installed to compile `.rock` files into Docker images. <br>
+**Note**: It comes bundled with Rockcraft.
+
+### Step-by-Step Guide
+
+#### 1. Build phplip-printer-app rock:
+
+The first step is to build the Rock from the `rockcraft.yaml`. This image will contain all the configurations and dependencies required to run hplip-printer-app.
+
+Open your terminal and navigate to the directory containing your `rockcraft.yaml`, then run the following command:
+
+```sh
+rockcraft pack -v
+```
+
+#### 2. Compile to Docker Image:
+
+Once the rock is built, you need to compile docker image from it.
+
+```sh
+sudo rockcraft.skopeo --insecure-policy copy oci-archive:<rock_image> docker-daemon:hplip-printer-app:latest
+```
+
+#### Run the hplip-printer-app Docker Container:
+
+```sh
+sudo docker run --rm -d --name hplip-printer-app -p <port>:8000 \
+    hplip-printer-app:latest
+```
 
 ### Setting up
 
-The Printer Application will automatically be started as a server daemon.
-
 Enter the web interface
 
-```
-http://localhost:8000/
+```sh
+http://localhost:<port>/
 ```
 
 Use the web interface to add a printer. Supply a name, select the
@@ -211,145 +213,3 @@ discovered printer, then select make and model. Also set the installed
 accessories, loaded media and the option defaults. If the printer is a
 PostScript printer, accessory configuration and option defaults can
 also often get polled from the printer.
-
-If the entry of your printer in the web interface has the remark
-"requires proprietary plugin", you need to install HP's plugin. For
-this, click on the "Plugin" button in this printer entry or on the
-"Install Proprietary Plugin" button under "Other Settings" on the
-front page of the web interface and follow the instructions on the
-screen.
-
-Then print PDF, PostScript, JPEG, Apple Raster, or PWG Raster files
-with
-
-```
-hplip-printer-app FILE
-```
-
-or print with CUPS, CUPS (and also cups-browsed) discover and treat
-the printers set up with this Printer Application as driverless IPP
-printers (IPP Everywhere and AirPrint).
-
-See
-
-```
-hplip-printer-app --help
-```
-
-for more options.
-
-Use the "-o log-level=debug" argument for verbose logging in your
-terminal window.
-
-You can add files to `/var/snap/hplip-printer-app/common/usb/` for
-additional USB quirk rules. Edit the existing files only for quick
-tests, as they get replaced at every update of the Snap (to introduce
-new rules).
-
-You can edit the `/var/snap/hplip-printer-app/common/cups/snmp.conf`
-file for configuring SNMP network printer discovery.
-
-
-## BUILDING WITHOUT SNAP
-
-You can also do a "quick-and-dirty" build without snapping and without
-needing to install [PAPPL](https://www.msweet.org/pappl),
-[cups-filters 2.x](https://github.com/OpenPrinting/cups-filters), and
-[pappl-retrofit](https://github.com/OpenPrinting/pappl-retrofit) into
-your system. You need a directory with the latest GIT snapshot of
-PAPPL, the latest GIT snapshot of cups-filters, and the latest GIT
-snapshot of pappl-retrofit (master branches of each). They all need to
-be compiled (`./autogen.sh; ./configure; make`), installing not
-needed. Also install the header files of all needed libraries
-(installing "libcups2-dev" should do it).
-
-In the directory with hplip-printer-app.c run the command line
-
-```
-gcc -o hplip-printer-app hplip-printer-app.c $PAPPL_SRC/pappl/libpappl.a $CUPS_FILTERS_SRC/.libs/libppd.a $CUPS_FILTERS_SRC/.libs/libcupsfilters.a $PAPPL_RETROFIT_SRC/.libs/libpappl-retrofit.a -ldl -lpthread  -lppd -lcups -lavahi-common -lavahi-client -lgnutls -ljpeg -lpng16 -ltiff -lz -lm -lusb-1.0 -lpam -lqpdf -lstdc++ -I. -I$PAPPL_SRC/pappl -I$CUPS_FILTERS_SRC/ppd -I$CUPS_FILTERS_SRC/cupsfilters -I$PAPPL_RETROFIT_SRC/pappl/retrofit -L$CUPS_FILTERS_SRC/.libs/ -L$PAPPL_RETROFIT_SRC/.libs/
-```
-
-There is also a Makefile, but this needs PAPPL, cups-filters 2.x, and
-pappl-retrofit to be installed into your system.
-
-Run
-
-```
-./hplip-printer-app --help
-```
-
-When running the non-snapped version, by default, PPD files are
-searched for in
-
-```
-/usr/share/ppd/
-/usr/lib/cups/driver/
-/var/lib/hplip-printer-app/ppd/
-```
-
-You can set the `PPD_PATHS` environment variable to search other
-places instead:
-
-```
-PPD_PATHS=/path/to/my/ppds:/my/second/place ./hplip-printer-app server
-```
-
-Simply put a colon-separated list of any amount of paths into the
-variable. Creating a wrapper script is recommended.
-
-Note that only PPD files for the `hpcups` driver of HPLIP are
-considred, other PPD files are ignored.
-
-Printers are only discovered via the `hp` backend of HPLIP (USB) or
-the `hp-probe` utility of HPLIP (network). For the latter a wrapper
-script named `HP` is included which makes the utility be used like a
-CUPS backend (discovery mode only). This especially makes only HP and
-Apollo printers being discovered. Printers from other manufacturers
-are not supported.
-
-Jobs are filtered through `hpcups` and send to the printer via the
-`hp` backend (both USB and network).
-
-The standard (not HPLIP's) backends provided as alternative in this
-Printer Application are CUPS' backends and not PAPPL's, meaning that
-for USB printers CUPS' USB quirk workarounds for compatibility
-problems are used, network printers can also be used with IPP, IPPS,
-and LPD protocols, and SNMP printer discovery is configurable.
-
-USB Quirk rules in `/usr/share/cups/usb` and the `/etc/cups/snmp.conf`
-file can get edited if needed.
-
-Make sure you have HPLIP installed and if you want to use standard
-backends, CUPS (at least its backends).
-
-You also need Ghostscript to print PDF or PostScript jobs.
-
-For access to the test page `testpage.ps` use the TESTPAGE_DIR
-environment variable:
-
-```
-TESTPAGE_DIR=`pwd` PPD_PATHS=/path/to/my/ppds:/my/second/place ./hplip-printer-app server
-```
-
-or for your own creation of a test page (PostScript, PDF, PNG, JPEG,
-Apple Raster, PWG Raster):
-
-```
-TESTPAGE=/path/to/my/testpage/my_testpage.ps PPD_PATHS=/path/to/my/ppds:/my/second/place ./hplip-printer-app server
-```
-
-
-## LEGAL STUFF
-
-The HPLIP Printer Application is Copyright © 2020 by Till Kamppeter.
-
-It is derived from the HP PCL Printer Application, a first working model of
-a raster Printer Application using PAPPL. It is available here:
-
-https://github.com/michaelrsweet/hp-printer-app
-
-The HP PCL Printer Application is Copyright © 2019-2020 by Michael R Sweet.
-
-This software is licensed under the Apache License Version 2.0 with an exception
-to allow linking against GPL2/LGPL2 software (like older versions of CUPS).  See
-the files "LICENSE" and "NOTICE" for more information.
