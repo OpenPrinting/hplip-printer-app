@@ -1,6 +1,6 @@
 name: hplip-printer-app
 base: ubuntu@22.04
-version: '3.22.10-10'
+version: '3.22.10-11'
 summary: HPLIP Printer Application
 description: |
   The HPLIP Printer Application is a PAPPL (Printer Application
@@ -346,7 +346,7 @@ parts:
   libcupsfilters:
     source: https://github.com/OpenPrinting/libcupsfilters
     source-type: git
-    source-tag: '2.0.0'
+    source-tag: '2.1.0'
     source-depth: 1
 # ext:updatesnap
 #   version-format:
@@ -413,7 +413,7 @@ parts:
   libppd:
     source: https://github.com/OpenPrinting/libppd
     source-type: git
-    source-tag: '2.0.0'
+    source-tag: '2.1.0'
     source-depth: 1
 # ext:updatesnap
 #   version-format:
