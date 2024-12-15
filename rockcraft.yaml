@@ -1,7 +1,6 @@
 name: hplip-printer-app
-base: core22
-version: '3.22.10-8'
-grade: stable
+base: ubuntu@22.04
+version: '3.22.10-13'
 summary: HPLIP Printer Application
 description: |
   The HPLIP Printer Application is a PAPPL (Printer Application
@@ -9,31 +8,30 @@ description: |
   printer driver of HPLIP. Loading the proprietary plugin from HP is
   supported, support for scanning will be added later.
 
-confinement: strict
 adopt-info: hplip
 
 # Only build on the architectures supported
-architectures:
-  - build-on: amd64
-  - build-on: arm64
-  - build-on: armhf
+platforms:
+    arm64:
+    amd64:
+    armhf:
 
 environment:
-  MIBDIRS: /snap/hplip-printer-app/current/usr/share/snmp/mibs:/snap/hplip-printer-app/current/usr/share/snmp/mibs/iana:/snap/hplip-printer-app/current/usr/share/snmp/mibs/ietf
+  MIBDIRS: /hplip-printer-app/current/usr/share/snmp/mibs:/hplip-printer-app/current/usr/share/snmp/mibs/iana:/hplip-printer-app/current/usr/share/snmp/mibs/ietf
 
-apps:
-  hplip-printer-app-server:
-    command: scripts/run-hplip-printer-app-server
-    daemon: simple
-    # Use a systemd timeout longer than 1 min as PAPPL has a 1-minute
-    # shutdown timeout if there are pending jobs for which the printer
-    # is not responding. This way we avoid the Printer Application
-    # getting killed and shut down uncleanly.
-    stop-timeout: 70s
-    plugs: [avahi-control, home, network, network-bind, raw-usb, hardware-observe]
+services:
+  dbus:
+    command: /scripts/run-dbus.sh
+    override: replace
+    on-failure: restart
+    startup: enabled
+
   hplip-printer-app:
-    command: scripts/run-hplip-printer-app
-    plugs: [avahi-control, home, network, network-bind, raw-usb]
+    command: /scripts/start-server.sh
+    override: replace
+    on-failure: shutdown
+    startup: enabled
+    after: [dbus]
 
 parts:
   pappl:
@@ -66,8 +64,6 @@ parts:
       craftctl default
     autotools-configure-parameters:
       - --prefix=/usr
-      - --with-papplstatedir=/var/snap/hplip-printer-app/common
-      - --with-papplsockdir=/var/snap/hplip-printer-app/common/tmp
       - --enable-libjpeg
       - --enable-libpng
       - --enable-libusb
@@ -100,7 +96,6 @@ parts:
       - -usr/share/doc
       - -usr/share/doc-base
       - -usr/share/lintian
-      - -snap
     after: [cups]
 
   pappl-retrofit:
@@ -145,7 +140,6 @@ parts:
       - -usr/share/doc
       - -usr/share/doc-base
       - -usr/share/lintian
-      - -snap
     after: [cups, pappl, libcupsfilters, libppd]
 
   qpdf:
@@ -220,7 +214,6 @@ parts:
       - --without-gpdl
       - --without-pcl
       - --without-xps
-      - --datarootdir=/snap/hplip-printer-app/current/usr/share/
     stage-packages:
       - libpaper1
       - libfontconfig1
@@ -240,9 +233,6 @@ parts:
       - -usr/share/doc
       - -usr/share/doc-base
       - -usr/share/lintian
-      - -snap
-    organize:
-      snap/hplip-printer-app/current/usr/share: usr/share
     after: [cups]
 
   cups:
@@ -262,7 +252,7 @@ parts:
       # We use "--with-tls=gnutls" here, as current CUPS defaults to SSL here
       # and this is buggy, causing a segfault when serving out a HTTPS web
       # interface page.
-      ./configure --sysconfdir=/var/snap/hplip-printer-app/common/ --with-tls=gnutls
+      ./configure --with-tls=gnutls
       cd cups
       make
       cd ..
@@ -440,7 +430,7 @@ parts:
       - --enable-ghostscript
       - --enable-gs-ps2write
       - --enable-ppdc-utils
-      - --with-pdftops-path=/snap/hplip-printer-app/current/usr/bin/pdftops
+      - --with-pdftops-path=/hplip-printer-app/current/usr/bin/pdftops
     # To find the libraries built in this Snap
     build-environment:
       - LD_LIBRARY_PATH: "${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$CRAFT_STAGE/usr/lib"
@@ -485,6 +475,10 @@ parts:
 #     lower-than: '2'
 #     no-9x-revisions: true
     plugin: python
+    build-packages:
+      - python3.10
+    stage-packages:
+      - python3.10
     override-prime: ""
 
   hplip:
@@ -554,7 +548,7 @@ parts:
     override-build: |
       set -eux
       # Correct hard-coded /etc/hp/ path in Makefile
-      perl -p -i -e 's:/etc/hp:/snap/hplip-printer-app/current/etc/hp:' Makefile*
+      perl -p -i -e 's:/etc/hp:/hplip-printer-app/current/etc/hp:' Makefile*
       # Remove hard-coded linking of binary-only libImageProcessor
       # in Makefile for non-amd64 architectures (for upstream source)
       #if echo $CRAFT_ARCH_TRIPLET | grep -qv x86_64; then
@@ -598,7 +592,7 @@ parts:
       # Correct hard-coded paths in C/C++ source code
       # The /etc/... and /usr/... paths in these files do not need to get
       # corrected, only the /var/... ones
-      perl -p -i -e 's:\"/var/lib/hp:\"/var/snap/hplip-printer-app/common/var/:' common/utils.[ch]
+      # perl -p -i -e 's:\"/var/lib/hp:\"/var/hplip-printer-app/common/var/:' common/utils.[ch]
       # Set path for dynamic link libraries of the proprietary plugin
       # We have to apply this patch here as patches on the C/C++ code need
       # to get applied before compiling
@@ -609,19 +603,19 @@ parts:
       make
       make DESTDIR=$CRAFT_PART_INSTALL install
       # Correct hard-coded paths in hplip.conf
-      ( cd $CRAFT_PART_INSTALL/snap/hplip-printer-app/current/etc/hp; \
-        perl -p -i -e 's:/var/:/var/snap/hplip-printer-app/common/var/:' hplip.conf; \
-        perl -p -i -e 's:/usr/share/:/snap/hplip-printer-app/current/usr/share/:' hplip.conf; \
+      ( cd $CRAFT_PART_INSTALL/hplip-printer-app/current/etc/hp; \
+        perl -p -i -e 's:/var/:/var/hplip-printer-app/common/var/:' hplip.conf; \
+        perl -p -i -e 's:/usr/share/:/hplip-printer-app/current/usr/share/:' hplip.conf; \
         perl -p -i -e 's:/usr/share/ppd/hplip:/usr/share/ppd:' hplip.conf; \
         perl -p -i -e 's:/usr/share/ppd/HP:/usr/share/ppd:' hplip.conf; \
-        perl -p -i -e 's:/usr/lib/cups/:/snap/hplip-printer-app/current/usr/lib/hplip-printer-app/:' hplip.conf; \
+        perl -p -i -e 's:/usr/lib/cups/:/hplip-printer-app/current/usr/lib/hplip-printer-app/:' hplip.conf; \
       )
       # Correct hard-coded /var and /etc paths in the utilities written in
       # Python
       ( cd $CRAFT_PART_INSTALL/usr/share/hplip/
-        perl -p -i -e 's:/var/(\S+)/hp:/var/snap/hplip-printer-app/common/var/\1/hp:' *.py */*.py */*/*.py
+        perl -p -i -e 's:/var/(\S+)/hp:/var/hplip-printer-app/common/var/\1/hp:' *.py */*.py */*/*.py
         perl -p -i -e 's:/var/lib/hp:/var:' *.py */*.py */*/*.py
-        perl -p -i -e 's:/etc/hp:/snap/hplip-printer-app/current/etc/hp:' *.py */*.py */*/*.py
+        perl -p -i -e 's:/etc/hp:/hplip-printer-app/current/etc/hp:' *.py */*.py */*/*.py
         # Set path for firmware files of the proprietary plugin
         # We have to apply this patch here so that the global corrections done
         # right above do not mess it up
@@ -630,7 +624,7 @@ parts:
       # Correct Python shebang in the utilities
       ( cd $CRAFT_PART_INSTALL; \
         for file in usr/bin/hp-*; do \
-          perl -p -i -e 's:^\s*\#\!\s*/usr/bin/env\s+python.*:#!/snap/hplip-printer-app/current/usr/bin/python3:' `readlink -f $file`; \
+          perl -p -i -e 's:^\s*\#\!\s*/usr/bin/env\s+python.*:#!/hplip-printer-app/current/usr/bin/python3:' `readlink -f $file`; \
         done; \
       )
       # "make install" install Python extension modules to the wrong place
@@ -648,7 +642,7 @@ parts:
         for file in `find . -name '*.ppd'`; do \
           perl -p -i -e 's/(\*NickName:.*\S+)\s*\(recommended\)/\1/' $file; \
         done; \
-        PYTHONPATH=$CRAFT_STAGE/lib/python3.10/site-packages $CRAFT_STAGE/bin/pyppd -v -o hplip-ppds .; \
+        PYTHONPATH=$CRAFT_STAGE/lib/python3.10/site-packages pyppd -v -o hplip-ppds .; \
         mv hplip-ppds ../..; \
         cd ../..; \
         rm -rf hplip; \
@@ -686,6 +680,7 @@ parts:
       - python3
       - xz-utils
       - curl
+      - python3-dev
     stage-packages:
       - python3
       - python3-minimal
@@ -701,18 +696,19 @@ parts:
       - libpython3.10-stdlib
       - wget
       - xz-utils
+      - python3-dev
       # We stage avahi-utils already in the "cups" part, to stage
       # everything Avahi-related there, to avoid any file clashes.
       #- avahi-utils
       - libsnmp40
       - libsnmp-base
+      - pyppd
     organize:
       usr/lib/cups/filter/hpcups: usr/lib/hplip-printer-app/filter/hpcups
       usr/lib/cups/filter/hpps: usr/lib/hplip-printer-app/filter/hpps
       usr/lib/cups/backend/hp: usr/lib/hplip-printer-app/backend/hp
-      snap/hplip-printer-app/current/etc: etc
     prime:
-      - etc/hp
+      # - etc/hp
       - -var
       - usr/bin
       - -usr/bin/pdb*
@@ -750,11 +746,11 @@ parts:
     source: .
     make-parameters:
       - LDFLAGS="$LDFLAGS -ljpeg"
-      - SNAP=1
       - VERSION="$VERSION"
-      - HPLIP_CONF_DIR=/snap/hplip-printer-app/current/etc/hp
-      - HPLIP_PLUGIN_STATE_DIR=/var/snap/hplip-printer-app/common/var
-      - HPLIP_PLUGIN_ALT_DIR=/var/snap/hplip-printer-app/common
+      - HPLIP_CONF_DIR=/hplip-printer-app/current/etc/hp
+      - HPLIP_PLUGIN_STATE_DIR=/var/hplip-printer-app/common/var
+      - HPLIP_PLUGIN_ALT_DIR=/var/hplip-printer-app/common
+      - SNAP=1
     # To find the libraries built in this Snap
     build-environment:
       - LD_LIBRARY_PATH: "${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$CRAFT_STAGE/usr/lib"
@@ -779,8 +775,8 @@ parts:
       set -eux
       make clean
       VERSION="`craftctl get version`"
-      make -j"8" LDFLAGS="$LDFLAGS -ljpeg" SNAP=1 VERSION="$VERSION" HPLIP_CONF_DIR=/snap/hplip-printer-app/current/etc/hp HPLIP_PLUGIN_STATE_DIR=/var/snap/hplip-printer-app/common/var HPLIP_PLUGIN_ALT_DIR=/var/snap/hplip-printer-app/common
-      make -j"8" install LDFLAGS="$LDFLAGS -ljpeg" SNAP=1 VERSION="$VERSION" HPLIP_CONF_DIR=/snap/hplip-printer-app/current/etc/hp HPLIP_PLUGIN_STATE_DIR=/var/snap/hplip-printer-app/common/var HPLIP_PLUGIN_ALT_DIR=/var/snap/hplip-printer-app/common DESTDIR="$CRAFT_PART_INSTALL"
+      make -j"8" LDFLAGS="$LDFLAGS -ljpeg" SNAP=1 VERSION="$VERSION" 
+      make -j"8" install LDFLAGS="$LDFLAGS -ljpeg" SNAP=1 VERSION="$VERSION"  DESTDIR="$CRAFT_PART_INSTALL"
       #craftctl default
     build-packages:
       - libusb-1.0-0-dev
@@ -820,12 +816,20 @@ parts:
       - -usr/lib/*/libgssapi.*
     after: [pappl-retrofit, pappl, cups, libcupsfilters, libppd, hplip]
 
+  avahi-daemon:
+    plugin: nil
+    overlay-packages:
+      - avahi-daemon
+      - avahi-utils
+      - libnss-mdns
+      - mdns-scan
+      - dbus
+      - python3
+
   scripts:
     plugin: dump
     source: .
     organize:
-      # Startup wrapper scripts
-      snap/local/run-hplip-printer-app*: scripts/
       # "HP" discovery-only CUPS backendto discover
       # network printers using the hp-probe utility, as
       # HPLIP's "hp" backend only discovers USB printers
@@ -841,3 +845,21 @@ parts:
       - usr/lib/hplip-printer-app/backend/
       - -usr/lib/tmpfiles.d
     after: [hplip-printer-app]
+
+  dbus-scripts:
+    plugin: dump
+    source: scripts/
+    organize:
+      run-dbus.sh: /scripts/run-dbus.sh
+      start-server.sh: /scripts/start-server.sh
+    override-prime: |
+      set -eux
+      craftctl default
+      # Ensure the run-dbus.sh script has executable permissions
+      if [ -f "$CRAFT_PRIME/scripts/run-dbus.sh" ]; then
+        chmod +x "$CRAFT_PRIME/scripts/run-dbus.sh"
+      fi
+      # Ensure the start-server.sh script has executable permissions
+      if [ -f "$CRAFT_PRIME/scripts/start-server.sh" ]; then
+        chmod +x "$CRAFT_PRIME/scripts/start-server.sh"
+      fi
