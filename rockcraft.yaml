@@ -27,9 +27,9 @@ services:
     startup: enabled
 
   hplip-printer-app:
-    command: hplip-printer-app -o log-file=/hplip-printer-app.log server
+    command: /scripts/start-server.sh
     override: replace
-    on-failure: restart
+    on-failure: shutdown
     startup: enabled
     after: [dbus]
 
@@ -851,10 +851,15 @@ parts:
     source: scripts/
     organize:
       run-dbus.sh: /scripts/run-dbus.sh
+      start-server.sh: /scripts/start-server.sh
     override-prime: |
       set -eux
       craftctl default
       # Ensure the run-dbus.sh script has executable permissions
       if [ -f "$CRAFT_PRIME/scripts/run-dbus.sh" ]; then
         chmod +x "$CRAFT_PRIME/scripts/run-dbus.sh"
+      fi
+      # Ensure the start-server.sh script has executable permissions
+      if [ -f "$CRAFT_PRIME/scripts/start-server.sh" ]; then
+        chmod +x "$CRAFT_PRIME/scripts/start-server.sh"
       fi

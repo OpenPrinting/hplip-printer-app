@@ -1,0 +1,31 @@
+name: CI Pipeline for ps-printer-app
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-rock:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Pack with Rockcraft
+        uses: canonical/craft-actions/rockcraft-pack@main
+        id: rockcraft
+
+  build-snap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Snap Package
+        uses: snapcore/action-build@v1
+        id: snapcraft

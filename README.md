@@ -148,16 +148,22 @@ first.
 
 The first step is to pull the hplip-printer-app Docker image from Docker Hub.
 ```sh
-sudo docker pull openprinting/hplip-printer-app
+  sudo docker pull openprinting/hplip-printer-app
 ```
 
 #### 2. Start the hplip-printer-app Container
 
 ##### Run the following Docker command to run the hplip-printer-app image:
 ```sh
-sudo docker run --rm -d --name hplip-printer-app -p <port>:8000 \
-    openprinting/hplip-printer-app:latest
+  sudo docker run --rm -d \
+      --name hplip-printer-app \
+      --network host \
+      -e PORT:<port> \
+      openprinting/hplip-printer-app:latest
 ```
+- `PORT` is an optional environment variable used to start the printer-app on a specified port. If not provided, it will start on the default port 8000 or, if port 8000 is busy, on 8001 and so on.
+- **The container must be started in `--network host` mode** to allow the Printer-Application instance inside the container to access and discover printers available in the local network where the host system is in.
+- Alternatively using the internal network of the Docker instance (`-p <port>:8000` instead of `--network host -e PORT:<port>`) only gives access to local printers running on the host system itself.
 
 ## Setting Up and Running hplip-printer-app locally
 
@@ -167,7 +173,7 @@ sudo docker run --rm -d --name hplip-printer-app -p <port>:8000 \
 
 2. **Rockcraft**: Rockcraft should be installed. You can install Rockcraft using the following command:
 ```sh
-sudo snap install rockcraft --classic
+  sudo snap install rockcraft --classic
 ```
 
 3. **Skopeo**: Skopeo should be installed to compile `.rock` files into Docker images. <br>
@@ -182,7 +188,7 @@ The first step is to build the Rock from the `rockcraft.yaml`. This image will c
 Open your terminal and navigate to the directory containing your `rockcraft.yaml`, then run the following command:
 
 ```sh
-rockcraft pack -v
+  rockcraft pack -v
 ```
 
 #### 2. Compile to Docker Image:
@@ -190,15 +196,21 @@ rockcraft pack -v
 Once the rock is built, you need to compile docker image from it.
 
 ```sh
-sudo rockcraft.skopeo --insecure-policy copy oci-archive:<rock_image> docker-daemon:hplip-printer-app:latest
+  sudo rockcraft.skopeo --insecure-policy copy oci-archive:<rock_image> docker-daemon:hplip-printer-app:latest
 ```
 
 #### Run the hplip-printer-app Docker Container:
 
 ```sh
-sudo docker run --rm -d --name hplip-printer-app -p <port>:8000 \
-    hplip-printer-app:latest
+  sudo docker run --rm -d \
+      --name hplip-printer-app \
+      --network host \
+      -e PORT:<port> \
+      hplip-printer-app:latest
 ```
+- `PORT` is an optional environment variable used to start the printer-app on a specified port. If not provided, it will start on the default port 8000 or, if port 8000 is busy, on 8001 and so on.
+- **The container must be started in `--network host` mode** to allow the Printer-Application instance inside the container to access and discover printers available in the local network where the host system is in.
+- Alternatively using the internal network of the Docker instance (`-p <port>:8000` instead of `--network host -e PORT:<port>`) only gives access to local printers running on the host system itself.
 
 ### Setting up
 
