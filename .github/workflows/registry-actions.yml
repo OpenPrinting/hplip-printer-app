@@ -40,7 +40,7 @@ jobs:
 
   publish-rock:
     needs: build-rock
-    if: github.ref_name == 'main'
+    if: github.ref_name == 'main' || github.ref_name == 'master'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
