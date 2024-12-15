@@ -1,4 +1,4 @@
-name: CI Pipeline for ps-printer-app
+name: CI Pipeline for hplip-printer-app
 
 on:
   push:
