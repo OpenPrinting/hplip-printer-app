@@ -258,12 +258,30 @@ file for configuring SNMP network printer discovery.
 
 #### Step-by-Step Guide
 
-The first step is to pull the hplip-printer-app Docker image from Docker Hub.
+You can pull the `hplip-printer-app` Docker image from either the GitHub Container Registry or Docker Hub.
+
+**From GitHub Container Registry** <br>
+To pull the image from the GitHub Container Registry, run the following command:
+```sh
+  sudo docker pull ghcr.io/openprinting/hplip-printer-app:latest
+```
+
+To run the container after pulling the image from the GitHub Container Registry, use:
+```sh
+  sudo docker run --rm -d \
+      --name hplip-printer-app \
+      --network host \
+      -e PORT=<port> \
+      ghcr.io/openprinting/hplip-printer-app:latest
+```
+
+**From Docker Hub** <br>
+Alternatively, you can pull the image from Docker Hub, by running:
 ```sh
   sudo docker pull openprinting/hplip-printer-app
 ```
 
-Run the following Docker command to run the hplip-printer-app image:
+To run the container after pulling the image from Docker Hub, use:
 ```sh
   sudo docker run --rm -d \
       --name hplip-printer-app \
@@ -271,6 +289,7 @@ Run the following Docker command to run the hplip-printer-app image:
       -e PORT=<port> \
       openprinting/hplip-printer-app:latest
 ```
+
 - `PORT` is an optional environment variable used to start the printer-app on a specified port. If not provided, it will start on the default port 8000 or, if port 8000 is busy, on 8001 and so on.
 - **The container must be started in `--network host` mode** to allow the Printer-Application instance inside the container to access and discover printers available in the local network where the host system is in.
 - Alternatively using the internal network of the Docker instance (`-p <port>:8000` instead of `--network host -e PORT=<port>`) only gives access to local printers running on the host system itself.
