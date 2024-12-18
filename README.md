@@ -268,7 +268,7 @@ To pull the image from the GitHub Container Registry, run the following command:
 
 To run the container after pulling the image from the GitHub Container Registry, use:
 ```sh
-  sudo docker run --rm -d \
+  sudo docker run -d \
       --name hplip-printer-app \
       --network host \
       -e PORT=<port> \
@@ -283,7 +283,7 @@ Alternatively, you can pull the image from Docker Hub, by running:
 
 To run the container after pulling the image from Docker Hub, use:
 ```sh
-  sudo docker run --rm -d \
+  sudo docker run -d \
       --name hplip-printer-app \
       --network host \
       -e PORT=<port> \
@@ -333,7 +333,7 @@ Once the rock is built, you need to compile docker image from it.
 **Run the hplip-printer-app Docker Container**
 
 ```sh
-  sudo docker run --rm -d \
+  sudo docker run -d \
       --name hplip-printer-app \
       --network host \
       -e PORT=<port> \
