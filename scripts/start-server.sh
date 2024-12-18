@@ -13,8 +13,8 @@ fi
 CUPS_SERVERROOT="/etc/cups/ssl"
 if [ ! -d "$CUPS_SERVERROOT" ]; then
     mkdir -p "$CUPS_SERVERROOT"
-    chmod 755 "$CUPS_SERVERROOT"
 fi
+chmod 755 "$CUPS_SERVERROOT"
 
 # Ensure /var/lib/hplip-printer-app directory exists
 STATE_DIR="/var/lib/hplip-printer-app"
