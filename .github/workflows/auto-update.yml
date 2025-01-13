@@ -38,3 +38,4 @@ jobs:
           repo: ${{ github.repository }}
           rock-version-schema: '^debian/(\d+\.\d+\.\d+)'
           yaml-path: 'rockcraft.yaml'
+          readme-path: 'README.md'
