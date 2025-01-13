@@ -357,6 +357,10 @@ accessories, loaded media and the option defaults. If the printer is a
 PostScript printer, accessory configuration and option defaults can
 also often get polled from the printer.
 
+<!-- Begin Included Components -->
+
+<!-- End Included Components -->
+
 ## BUILDING WITHOUT PACKAGING OR INSTALLATION
 
 You can also do a "quick-and-dirty" build without snapping and without
