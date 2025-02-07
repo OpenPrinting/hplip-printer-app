@@ -366,7 +366,7 @@ also often get polled from the printer.
   - libcupsfilters 2.1.0
   - libppd 2.1.0
   - pyppd release-1-1-0
-  - hplip debian/3.22.10+dfsg0-5
+  - hplip debian/3.22.10+dfsg0-6
 <!-- End Included Components -->
 
 ## BUILDING WITHOUT PACKAGING OR INSTALLATION
