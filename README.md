@@ -360,13 +360,13 @@ also often get polled from the printer.
 <!-- Begin Included Components -->
 ## Included Components
   - pappl v1.4.8
-  - qpdf v11.10.0
+  - qpdf v11.10.1
   - ghostscript ghostpdl-10.05.0-test-base-001
   - cups v2.4.11
   - libcupsfilters 2.1.0
   - libppd 2.1.0
   - pyppd release-1-1-0
-  - hplip debian/3.22.10+dfsg0-7
+  - hplip debian/3.22.10+dfsg0-8
 <!-- End Included Components -->
 
 ## BUILDING WITHOUT PACKAGING OR INSTALLATION
