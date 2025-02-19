@@ -1,6 +1,6 @@
 name: hplip-printer-app
 base: core22
-version: '3.22.10-9'
+version: '3.22.10-10'
 grade: stable
 summary: HPLIP Printer Application
 description: |
@@ -356,7 +356,7 @@ parts:
   libcupsfilters:
     source: https://github.com/OpenPrinting/libcupsfilters
     source-type: git
-    source-tag: '2.1.0'
+    source-tag: '2.1.1'
     source-depth: 1
 # ext:updatesnap
 #   version-format:
