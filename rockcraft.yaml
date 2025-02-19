@@ -28,7 +28,7 @@ services:
     on-failure: restart
     startup: enabled
 
-  ps-printer-app:
+  hplip-printer-app:
     command: /scripts/start-server.sh
     override: replace
     on-failure: shutdown
