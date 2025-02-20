@@ -423,7 +423,7 @@ parts:
   libppd:
     source: https://github.com/OpenPrinting/libppd
     source-type: git
-    source-tag: '2.1.0'
+    source-tag: '2.1.1'
     source-depth: 1
 # ext:updatesnap
 #   version-format:
