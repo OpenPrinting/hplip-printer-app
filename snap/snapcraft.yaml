@@ -17,6 +17,7 @@ architectures:
   - build-on: amd64
   - build-on: arm64
   - build-on: armhf
+  - build-on: riscv64
 
 environment:
   MIBDIRS: /snap/hplip-printer-app/current/usr/share/snmp/mibs:/snap/hplip-printer-app/current/usr/share/snmp/mibs/iana:/snap/hplip-printer-app/current/usr/share/snmp/mibs/ietf
