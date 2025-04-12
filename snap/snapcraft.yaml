@@ -478,11 +478,11 @@ parts:
   pyppd:
     source: https://github.com/OpenPrinting/pyppd
     source-type: git
-    source-tag: 'release-1-1-0'
+    source-tag: '1.1.1'
     source-depth: 1
 # ext:updatesnap
 #   version-format:
-#     format: 'release-%M-%m-%R'
+#     format: '%M.%m.%R'
 #     lower-than: '2'
 #     no-9x-revisions: true
     plugin: python
