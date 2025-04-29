@@ -361,7 +361,7 @@ also often get polled from the printer.
 ## Included Components
   - pappl v1.4.9
   - qpdf v11.10.1
-  - ghostscript ghostpdl-10.05.0-test-base-001
+  - ghostscript ghostpdl-10.05.1rc1_test002
   - cups v2.4.12
   - libcupsfilters 2.1.1
   - libppd 2.1.1
