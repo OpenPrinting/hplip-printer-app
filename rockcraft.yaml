@@ -19,9 +19,11 @@ platforms:
 environment:
   MIBDIRS: /hplip-printer-app/current/usr/share/snmp/mibs:/hplip-printer-app/current/usr/share/snmp/mibs/iana:/hplip-printer-app/current/usr/share/snmp/mibs/ietf
 
+run-user: _daemon_
+
 services:
-  dbus:
-    command: /scripts/run-dbus.sh
+  avahi-daemon:
+    command: /scripts/run-avahi.sh
     override: replace
     on-failure: restart
     startup: enabled
@@ -31,7 +33,7 @@ services:
     override: replace
     on-failure: shutdown
     startup: enabled
-    after: [dbus]
+    after: [avahi-daemon]
 
 parts:
   pappl:
@@ -305,7 +307,7 @@ parts:
       # hplip parts to avoid any file clashes.
       - libavahi-common3
       - libavahi-client3
-      - avahi-utils
+      # - avahi-utils
     prime:
       - -etc/fonts
       - -var
@@ -814,28 +816,175 @@ parts:
       - -usr/share/man
       # Reported unused by snapcraft linter
       - -usr/lib/*/libgssapi.*
+    after: [avahi, pappl-retrofit, pappl, cups, libcupsfilters, libppd, hplip]
+
+  avahi:
+    plugin: autotools
+    source: https://github.com/avahi/avahi.git
+    source-type: git
+    autotools-configure-parameters:
+      - --prefix=/usr
+      - --disable-qt3
+      - --disable-qt4
+      - --disable-qt5
+      - --disable-gtk
+      - --disable-gtk3
+      - --disable-gdbm
+      - --disable-python
+      - --disable-pygtk
+      - --disable-python-dbus
+      - --disable-mono
+      - --disable-monodoc
+      - --disable-manpages
+      - --disable-xmltoman
+      - --with-avahi-user=_daemon_
+      - --with-avahi-group=_daemon_
+      # - --with-avahi-priv-access-group=netdev
+      # - --with-distro=debian
+      - --disable-gobject
+      - --datadir=/usr/share
+      - --libdir=/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}
+      - --with-systemdsystemunitdir=/usr/lib/systemd/system
+      - --localstatedir=/var
+      - --sysconfdir=/etc
+    build-packages:
+      - g++
+      - gcc
+      - gettext
+      - intltool
+      - libdaemon-dev
+      - libdbus-1-dev
+      - libevent-dev
+      - libexpat1-dev
+      - libglib2.0-dev
+      - libsystemd-dev
+      - xmltoman
+    override-build: |
+        craftctl default
+        # for reference sort systemd service files
+        sed -i \
+            -e 's|\(.*\)avahi-daemon -s.*|\1avahi-daemon -s --no-drop-root|g' \
+            -e 's|\(.*\)avahi-daemon -r.*|\1avahi-daemon -r --no-drop-root|g' \
+            ${CRAFT_PART_INSTALL}/usr/lib/systemd/system/avahi-daemon.service
+        mkdir -p \
+            ${CRAFT_PART_INSTALL}/usr/lib/systemd/system/multi-user.target.wants
+        ln -sf \
+            ../avahi-daemon.service \
+            ${CRAFT_PART_INSTALL}/usr/lib/systemd/system/multi-user.target.wants/avahi-daemon.service
+    build-environment:
+      - LD_LIBRARY_PATH: "${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$CRAFT_STAGE/usr/lib"
+    override-prime: |
+      set -eux
+      craftctl default
+      sed -i 's/use-ipv6=yes/use-ipv6=no/' ${CRAFT_PRIME}/etc/avahi/avahi-daemon.conf
+      sed -i 's|<user>messagebus</user>|<user>_daemon_</user>|; /<policy user="root">/,/<\/policy>/d' $CRAFT_PRIME/usr/share/dbus-1/system.conf
+      sed -i 's/<policy group="netdev">/<policy group="_daemon_">/g; s/<policy user="root">/<policy user="_daemon_">/g' $CRAFT_PRIME/usr/share/dbus-1/system.d/avahi-dbus.conf
+    stage-packages:
+      - libdaemon0
+      - libevent-2.1-7
+      - avahi-utils
+      - mdns-scan
+      # - libavahi-client3
+      # - libavahi-common3
+    stage:
+      - etc/avahi
+      - usr
+      - -usr/lib/**/libavahi-client.so*
+      - -usr/lib/**/libavahi-common.so*
+      - -usr/lib/**/*.acd
+      - -usr/lib/**/*.la
+      - -usr/lib/**/avahi
+      - -usr/lib/**/libavahi-glib*
+      - -usr/lib/**/libavahi-libevent*
+      - -usr/lib/**/libevent-*
+      # - -usr/lib/**/libnss_mdns*
+      - -usr/lib/**/pkgconfig
+      - -usr/include
+      - -usr/share/doc
+      - -usr/share/man
+      - -usr/share/locale
     after: [pappl-retrofit, pappl, cups, libcupsfilters, libppd, hplip]
 
-  avahi-daemon:
+  utils:
     plugin: nil
     overlay-packages:
-      - avahi-daemon
-      - avahi-utils
-      - libnss-mdns
-      - mdns-scan
-      - dbus
       - python3
+      - dbus
+      - libnss-mdns
+    override-prime: |
+      set -eux
+      craftctl default
+
+      # Set up Avahi Daemon runtime directory
+      mkdir -p "$CRAFT_PRIME/var/run/avahi-daemon"
+      chown 584792:584792 "$CRAFT_PRIME/var/run/avahi-daemon"
+      chmod 777 "$CRAFT_PRIME/var/run/avahi-daemon"
+
+      # Set up D-Bus runtime directory
+      mkdir -p "$CRAFT_PRIME/var/run/dbus"
+      chown 584792:584792 "$CRAFT_PRIME/var/run/dbus"
+      chmod 777 "$CRAFT_PRIME/var/run/dbus"
+
+      # Set up the CUPS SSL server root directory
+      CUPS_SERVERROOT="$CRAFT_PRIME/etc/cups/ssl"
+      mkdir -p "$CUPS_SERVERROOT"
+      chown 584792:584792 "$CUPS_SERVERROOT"
+      chmod 770 "$CUPS_SERVERROOT"
+
+      # Set up the state directory and file for the printer app
+      STATE_DIR="$CRAFT_PRIME/var/lib/hplip-printer-app/"
+      mkdir -p "$STATE_DIR"
+      chown 584792:584792 "$STATE_DIR"
+      chmod 770 "$STATE_DIR"
+
+      # Create a state file inside the state directory
+      STATE_FILE="$STATE_DIR/hplip-printer-app.state"
+      touch "$STATE_FILE"
+      chown 584792:584792 "$STATE_FILE"
+      chmod 644 "$STATE_FILE"
+
+      # Set up the hp state directory and file for the printer app
+      HP_STATE_DIR="$CRAFT_PRIME/var/lib/hp"
+      mkdir -p "$HP_STATE_DIR"
+      chown 584792:584792 "$HP_STATE_DIR"
+      chmod 770 "$HP_STATE_DIR"
+
+      # Create a hp state file inside the state directory
+      HP_STATE_FILE="$HP_STATE_DIR/hplip.state"
+      touch "$HP_STATE_FILE"
+      chown 584792:584792 "$HP_STATE_FILE"
+      chmod 644 "$HP_STATE_FILE"
+
+      # Ensure the spool directory is owned properly
+      SPOOL_DIR="$CRAFT_PRIME/var/spool/hplip-printer-app"
+      mkdir -p "$SPOOL_DIR"
+      chown 584792:584792 "$SPOOL_DIR"
+      chmod 770 "$SPOOL_DIR"
+
+      # Create and set permissions for the application log file
+      touch $CRAFT_PRIME/hplip-printer-app.log
+      chown 584792:584792 $CRAFT_PRIME/hplip-printer-app.log
+      chmod 644 $CRAFT_PRIME/hplip-printer-app.log
+
+      # Setting up permissions to USB backend
+      USB_BACKEND="$CRAFT_PRIME/usr/lib/hplip-printer-app/backend/usb"
+      chmod u+s "$USB_BACKEND"
+    after: [avahi, pappl-retrofit, pappl, cups, libcupsfilters, libppd, hplip]
 
   scripts:
     plugin: dump
     source: .
     organize:
-      # "HP" discovery-only CUPS backendto discover
+      # "HP" discovery-only CUPS backend to discover
       # network printers using the hp-probe utility, as
       # HPLIP's "hp" backend only discovers USB printers
       HP: usr/lib/hplip-printer-app/backend/HP
     stage-packages:
       - udev
+    override-prime: |
+      set -eux
+      craftctl default
+      chmod +x $CRAFT_PRIME/scripts/*
     prime:
       - -etc
       - bin
@@ -845,21 +994,3 @@ parts:
       - usr/lib/hplip-printer-app/backend/
       - -usr/lib/tmpfiles.d
     after: [hplip-printer-app]
-
-  dbus-scripts:
-    plugin: dump
-    source: scripts/
-    organize:
-      run-dbus.sh: /scripts/run-dbus.sh
-      start-server.sh: /scripts/start-server.sh
-    override-prime: |
-      set -eux
-      craftctl default
-      # Ensure the run-dbus.sh script has executable permissions
-      if [ -f "$CRAFT_PRIME/scripts/run-dbus.sh" ]; then
-        chmod +x "$CRAFT_PRIME/scripts/run-dbus.sh"
-      fi
-      # Ensure the start-server.sh script has executable permissions
-      if [ -f "$CRAFT_PRIME/scripts/start-server.sh" ]; then
-        chmod +x "$CRAFT_PRIME/scripts/start-server.sh"
-      fi
