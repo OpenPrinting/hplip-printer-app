@@ -22,8 +22,30 @@ statedir	=	$(localstatedir)/lib/hplip-printer-app
 spooldir	=	$(localstatedir)/spool/hplip-printer-app
 serverbin	=	$(prefix)/lib/hplip-printer-app
 resourcedir	=	$(prefix)/share/hplip-printer-app
-cupsserverbin	=	`cups-config  --serverbin`
-unitdir 	=	`pkg-config --variable=systemdsystemunitdir systemd`
+# CUPS detection: prioritize CUPS 3.x (cups3), then CUPS 2.5 (cups), then legacy cups-config
+CUPS_PKG	:=	$(shell pkg-config --exists cups3 && echo cups3 || (pkg-config --exists cups && echo cups || echo ""))
+
+ifneq ($(CUPS_PKG),)
+CUPS_CFLAGS	:=	$(shell pkg-config --cflags $(CUPS_PKG))
+CUPS_LDFLAGS	:=	
+CUPS_LIBS	:=	$(shell pkg-config --libs $(CUPS_PKG))
+cupsserverbin	:=	$(shell pkg-config --variable=prefix $(CUPS_PKG))/lib/cups
+else
+CUPSCONFIG	:=	$(shell which cups-config 2>/dev/null)
+ifneq ($(CUPSCONFIG),)
+CUPS_CFLAGS	:=	$(shell cups-config --cflags)
+CUPS_LDFLAGS	:=	$(shell cups-config --ldflags)
+CUPS_LIBS	:=	$(shell cups-config --image --libs 2>/dev/null || cups-config --libs)
+cupsserverbin	:=	$(shell cups-config --serverbin)
+else
+cupsserverbin	:=	
+endif
+endif
+
+# PAPPL detection: prioritize PAPPL 2.x (pappl2), fallback to PAPPL 1.x (pappl)
+PAPPL_PKG	:=	$(shell pkg-config --exists pappl2 && echo pappl2 || echo pappl)
+
+unitdir 	=	`pkg-config --variable=systemdsystemunitdir systemd 2>/dev/null || echo ""`
 HPLIP_CONF_DIR  =       $(sysconfdir)/hp
 HPLIP_PLUGIN_STATE_DIR = $(localstatedir)/lib/hp
 
@@ -33,7 +55,7 @@ DIRS		=	-DHPLIP_CONF_DIR=\"$(HPLIP_CONF_DIR)\" -DHPLIP_PLUGIN_STATE_DIR=\"$(HPLI
 ifdef HPLIP_PLUGIN_ALT_DIR
 DIRS		+=	-DHPLIP_PLUGIN_ALT_DIR=\"$(HPLIP_PLUGIN_ALT_DIR)\"
 endif
-CFLAGS		+=	`pkg-config --cflags pappl` `cups-config --cflags` `pkg-config --cflags libppd` `pkg-config --cflags libcupsfilters` `pkg-config --cflags libpappl-retrofit` `pkg-config --cflags libcurl` `pkg-config --cflags libcrypto` $(DIRS) $(OPTIM)
+CFLAGS		+=	`pkg-config --cflags $(PAPPL_PKG)` $(CUPS_CFLAGS) `pkg-config --cflags libppd` `pkg-config --cflags libcupsfilters` `pkg-config --cflags libpappl-retrofit` `pkg-config --cflags libcurl` `pkg-config --cflags libcrypto` $(DIRS) $(OPTIM)
 ifdef VERSION
 CFLAGS		+=	-DSYSTEM_VERSION_STR="\"$(VERSION)\""
 ifndef MAJOR
@@ -64,8 +86,8 @@ endif
 ifdef SNAP
 CFLAGS		+=	-DSNAP=$(SNAP)
 endif
-LDFLAGS		+=	$(OPTIM) `cups-config --ldflags`
-LIBS		+=	`pkg-config --libs pappl` `cups-config --image --libs` `pkg-config --libs libppd` `pkg-config --libs libcupsfilters` `pkg-config --libs libpappl-retrofit` `pkg-config --libs libcurl` `pkg-config --libs libcrypto`
+LDFLAGS		+=	$(OPTIM) $(CUPS_LDFLAGS)
+LIBS		+=	`pkg-config --libs $(PAPPL_PKG)` $(CUPS_LIBS) `pkg-config --libs libppd` `pkg-config --libs libcupsfilters` `pkg-config --libs libpappl-retrofit` `pkg-config --libs libcurl` `pkg-config --libs libcrypto`
 
 
 # Targets...
