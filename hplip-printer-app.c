@@ -1775,7 +1775,11 @@ main(int  argc,				// I - Number of command-line arguments
   // Keeping vector formats (like PS -> PDF) is usually more desirable
   // but as many printers have buggy PS interpreters we prefer converting
   // PDF to Raster and not to PS
+#if CUPS_VERSION_MAJOR >= 3
   spooling_conversions = cupsArrayNew(NULL, NULL, NULL, 0, NULL, NULL);
+#else
+  spooling_conversions = cupsArrayNew(NULL, NULL);
+#endif
   cupsArrayAdd(spooling_conversions, (void *)&PR_CONVERT_PDF_TO_PS);
   cupsArrayAdd(spooling_conversions, (void *)&PR_CONVERT_PDF_TO_RASTER);
   cupsArrayAdd(spooling_conversions, (void *)&PR_CONVERT_PS_TO_PS);
@@ -1786,7 +1790,11 @@ main(int  argc,				// I - Number of command-line arguments
   // PDF comes last because it is generally not streamable.
   // PostScript comes second as it is Ghostscript's streamable
   // input format.
+#if CUPS_VERSION_MAJOR >= 3
   stream_formats = cupsArrayNew(NULL, NULL, NULL, 0, NULL, NULL);
+#else
+  stream_formats = cupsArrayNew(NULL, NULL);
+#endif
   cupsArrayAdd(stream_formats, (void *)&PR_STREAM_CUPS_RASTER);
   cupsArrayAdd(stream_formats, (void *)&PR_STREAM_POSTSCRIPT);
 
